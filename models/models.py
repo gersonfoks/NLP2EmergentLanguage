@@ -105,6 +105,7 @@ class ReceiverModuleFixedLength(nn.Module):
     def forward(self, xs, msg):
         hidden_states = []
         for x in xs:
+
             hidden_state = self.to_hidden(x).unsqueeze(1)
 
             hidden_states.append(hidden_state)
@@ -134,7 +135,7 @@ class PredictionRNN(nn.Module):
         self.predictions = nn.Linear(hidden_size, n_words)
         self.n_words = n_words
 
-    def forward(self, input, hidden):
+    def forward(self, input):
         batch_size = input.shape[0]
         input = input.reshape(-1, self.n_words)
 
