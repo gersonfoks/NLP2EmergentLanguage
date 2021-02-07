@@ -105,6 +105,7 @@ class ReceiverModuleFixedLength(nn.Module):
     def forward(self, xs, msg):
         hidden_states = []
         for x in xs:
+
             hidden_state = self.to_hidden(x).unsqueeze(1)
 
             hidden_states.append(hidden_state)
@@ -121,3 +122,34 @@ class ReceiverModuleFixedLength(nn.Module):
 
         out_probs = torch.softmax(out, dim=-1)
         return out, out_probs
+
+
+class PredictionRNN(nn.Module):
+    def __init__(self, n_words, hidden_size):
+        super(PredictionRNN, self).__init__()
+        self.hidden_size = hidden_size
+
+        self.embedding = nn.Linear(n_words, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size)
+
+        self.predictions = nn.Linear(hidden_size, n_words)
+        self.n_words = n_words
+
+    def forward(self, input):
+        batch_size = input.shape[0]
+        input = input.reshape(-1, self.n_words)
+
+        embedded = self.embedding(input)
+        embedded = embedded.reshape(batch_size, -1, self.hidden_size)
+
+        out, hidden = self.gru(embedded)
+
+
+        # Each hidden state put trough something to a small nn.
+        predictions_logits = self.predictions(out)
+
+        out_probs = torch.softmax(predictions_logits, dim=-1)
+        return predictions_logits, out_probs, hidden
+
+    def initHidden(self):
+        return torch.zeros(1, 1, self.hidden_size)
