@@ -9,7 +9,7 @@ from utils import get_mnist_signalling_game, get_sender, get_receiver, get_predi
 
 
 ### Set to a number for faster prototyping
-size= None
+size = 10000
 
 msg_len = 5
 n_symbols = 3
@@ -18,27 +18,23 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 pl.seed_everything(42)
 
-# sender = get_sender(  pretrained_hidden=2)
-# receiver = get_receiver(pretrained_hidden=2)
-# classifier = get_classifier()
 train_dataloader, test_dataloader = get_mnist_signalling_game(size=size)
 
-sender = get_sender(n_symbols, msg_len, device)
-receiver = get_receiver(n_symbols, msg_len, device)
+pretrain = "MNIST"
+sender = get_sender(n_symbols, msg_len, device, fixed_size=False, pretrain=pretrain)
+receiver = get_receiver(n_symbols, msg_len, device, pretrain=pretrain)
 
 ###Todo make 128 variable
-predictor = None #get_predictor(n_symbols, 128, device)
+predictor = get_predictor(n_symbols, 128, device)
 
 loss_module = torch.nn.CrossEntropyLoss()
 
 loss_module_predictor = torch.nn.MSELoss()
 
-signalling_game_model = SignallingGameModel(sender, receiver, predictor, loss_module, loss_module_predictor).to(device)
-
-
+signalling_game_model = SignallingGameModel(sender, receiver, loss_module, predictor=predictor,
+                                            loss_module_predictor=loss_module_predictor).to(device)
 
 to_sample_from = next(iter(test_dataloader))[:5]
-
 
 msg_callback = MsgCallback(to_sample_from, )
 
