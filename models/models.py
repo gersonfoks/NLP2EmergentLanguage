@@ -1,6 +1,8 @@
 from torch import nn
 import torch
 
+import numpy as np
+
 
 class HiddenStateModel(nn.Module):
     def __init__(self, output_dim):
@@ -105,7 +107,6 @@ class ReceiverModuleFixedLength(nn.Module):
     def forward(self, xs, msg):
         hidden_states = []
         for x in xs:
-
             hidden_state = self.to_hidden(x).unsqueeze(1)
 
             hidden_states.append(hidden_state)
@@ -144,7 +145,6 @@ class PredictionRNN(nn.Module):
 
         out, hidden = self.gru(embedded)
 
-
         # Each hidden state put trough something to a small nn.
         predictions_logits = self.predictions(out)
 
@@ -153,3 +153,97 @@ class PredictionRNN(nn.Module):
 
     def initHidden(self):
         return torch.zeros(1, 1, self.hidden_size)
+
+
+class SenderRnn(nn.Module):
+    def __init__(self, output_dim, msg_len=5, n_symbols=3, hidden_state_model=None, tau=0.5):
+        '''
+        A sender that send fixed length messages
+        '''
+        super(SenderRnn, self).__init__()
+
+        if hidden_state_model:
+            self.to_hidden = hidden_state_model
+        else:
+            self.to_hidden = HiddenStateModel(output_dim)
+
+        self.hidden_state_size = self.to_hidden.hidden_state_size
+        self.gru = nn.GRU(self.hidden_state_size, self.hidden_state_size)
+
+        self.to_symbol = nn.Sequential(
+            nn.Linear(self.to_hidden.hidden_state_size, 128),
+            nn.ReLU(),
+            nn.Linear(128, n_symbols)
+        )
+
+        self.tau = tau
+        self.msg_len = msg_len
+        self.n_symbols = n_symbols
+
+    def forward(self, x):
+
+        ###Generate messages of length msg_len. Once the stop symbol (highest number in our alphabet) is generated the rest of the string will be filled with that sign
+
+        hidden_state = self.to_hidden(x)
+
+        hidden_state = hidden_state.unsqueeze(dim=0)
+
+        result = []
+        for i in range(self.msg_len):
+            out, hidden_state = self.gru(hidden_state)
+            out = self.to_symbol(out).reshape(-1, 1, self.n_symbols)
+
+            result.append(out)
+
+        output_logits = torch.cat(result, dim=1)
+
+        msg = torch.nn.functional.gumbel_softmax(output_logits, tau=self.tau, hard=True, dim=-1)
+
+        ##Now we need to the stop words in the msg
+
+        msg = self.add_stop_symbols(msg)
+
+        return msg
+
+    def add_stop_symbols(self, msg):
+
+        ##TODO: fix this bad programming
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        symbol_tensor = torch.argmax(msg, dim=-1)
+
+        stop_symbol_tensor = symbol_tensor == self.n_symbols - 1
+
+        np_stop_symbol_tensor = stop_symbol_tensor.cpu().numpy()
+
+        def fill_true(mask, ):
+            start_index = 0
+
+
+            for i, s in enumerate(mask):
+                if i == len(mask) - 1:
+                    break
+                if s:
+                    start_index = i
+                    break
+            mask[start_index] = False
+            if start_index < len(mask):
+                start_index += 1
+            mask[start_index:] = True
+            return mask
+
+        np_stop_symbol_tensor = np.apply_along_axis(fill_true, 1, np_stop_symbol_tensor)
+
+        mask = torch.tensor(np_stop_symbol_tensor).to(device)
+
+        m = symbol_tensor * ~mask + torch.ones(symbol_tensor.shape).to(device) * (self.n_symbols - 1) * mask
+        m = m.long()
+        # For each message we then replace all symbols after the stop symbol to a stop symbol
+
+
+        mask = mask.unsqueeze(dim=-1).repeat(1,1, self.n_symbols)
+
+        one_hot = torch.nn.functional.one_hot(m)
+
+        msg = msg * ~mask + one_hot * mask
+        return msg.float()
