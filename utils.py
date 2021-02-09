@@ -116,3 +116,22 @@ def get_mnist_pretrain(device, n_epochs=2, root='./data/'):
 
     train_hidden_state_model(hidden_state_model, device, train_dataloader, n_epochs)
     return hidden_state_model
+
+
+
+def cross_entropy_loss(predictions, targets):
+    '''
+    Custom version of the cross entropy loss. This one is used to make sure that the gradients are
+    properly calculated. If we use the standard one, there is not way to
+    '''
+    eps = 0.00001
+
+
+    target_loss = torch.sum(- predictions  * targets, dim=-1)
+
+    log_part =  torch.log(torch.sum(torch.exp(predictions + eps), dim=-1))
+
+    loss = torch.mean( target_loss+ log_part)
+
+    return loss
+

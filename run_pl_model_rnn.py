@@ -3,13 +3,13 @@ import pytorch_lightning as pl
 
 from callbacks.msg_callback import MsgCallback, MsgFrequencyCallback
 from pl_model import SignallingGameModel
-from utils import get_mnist_signalling_game, get_sender, get_receiver, get_predictor
+from utils import get_mnist_signalling_game, get_sender, get_receiver, get_predictor, cross_entropy_loss
 
 ###Config (Move to some file or something for easy training and experimentiation
 
 
 ### Set to a number for faster prototyping
-size = 10000
+size = None
 
 msg_len = 5
 n_symbols = 3
@@ -29,7 +29,7 @@ predictor = get_predictor(n_symbols, 128, device)
 
 loss_module = torch.nn.CrossEntropyLoss()
 
-loss_module_predictor = torch.nn.MSELoss()
+loss_module_predictor = cross_entropy_loss
 
 signalling_game_model = SignallingGameModel(sender, receiver, loss_module, predictor=predictor,
                                             loss_module_predictor=loss_module_predictor).to(device)

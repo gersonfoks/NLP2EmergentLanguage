@@ -3,13 +3,13 @@ import pytorch_lightning as pl
 
 from callbacks.msg_callback import MsgCallback, MsgFrequencyCallback
 from pl_model import SignallingGameModel
-from utils import get_mnist_signalling_game, get_sender, get_receiver, get_predictor
+from utils import get_mnist_signalling_game, get_sender, get_receiver, get_predictor, cross_entropy_loss
 
 ###Config (Move to some file or something for easy training and experimentiation
 
 
 ### Set to a number for faster prototyping
-size= 100
+size = 10000
 
 msg_len = 5
 n_symbols = 3
@@ -18,8 +18,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 pl.seed_everything(42)
 
-sender = get_sender(  n_symbols, msg_len, device)
-receiver = get_receiver(n_symbols, msg_len, device)
+pretrain = False
+sender = get_sender(n_symbols, msg_len, device, pretrain=pretrain)
+receiver = get_receiver(n_symbols, msg_len, device, pretrain=pretrain)
 
 train_dataloader, test_dataloader = get_mnist_signalling_game(size=size)
 
@@ -31,14 +32,12 @@ predictor = get_predictor(n_symbols, 128, device)
 
 loss_module = torch.nn.CrossEntropyLoss()
 
-loss_module_predictor = torch.nn.MSELoss()
+loss_module_predictor = cross_entropy_loss
 
-signalling_game_model = SignallingGameModel(sender, receiver, loss_module, predictor=predictor, loss_module_predictor=loss_module_predictor).to(device)
-
-
+signalling_game_model = SignallingGameModel(sender, receiver, loss_module, predictor=predictor,
+                                            loss_module_predictor=loss_module_predictor).to(device)
 
 to_sample_from = next(iter(test_dataloader))[:5]
-
 
 msg_callback = MsgCallback(to_sample_from, )
 
