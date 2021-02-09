@@ -9,7 +9,7 @@ class SignallingGameDataset(Dataset):
     Each image gets n_receiver-1 other images to be compared with.
     '''
 
-    def __init__(self, n_receiver=3, train=True, transform=None, root='/data/'):
+    def __init__(self, n_receiver=3, train=True, transform=None, root='./data'):
         self.data = MNIST(root=root, download=True, train=train, transform=transform)
         self.n_receiver = n_receiver
 
