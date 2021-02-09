@@ -42,9 +42,9 @@ class SignallingGameModel(pl.LightningModule):
 
             loss_predictor = self.loss_module_predictor(prediction_squeazed, msg_squezed)
 
-        loss_receiver = self.loss_module_receiver(out, target)
+        loss_receiver = self.loss_module_receiver(out_probs, target)
 
-        loss = loss_receiver + 0.05 * loss_predictor
+        loss = loss_receiver + 0.001 * loss_predictor
 
         predicted_indices = torch.argmax(out_probs, dim=-1)
 
