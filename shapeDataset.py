@@ -13,8 +13,8 @@ class ShapeDataset(Dataset):
     Each image gets n_receiver-1 other images to be compared with.
     '''
 
-    def __init__(self, epoch_size=10e4, picture_size=28, shape_size=8, transform=None):
-        self.epoch_size = int(epoch_size)
+    def __init__(self, samples_per_epoch=10e4, picture_size=28, shape_size=8, transform=None):
+        self.samples_per_epoch = int(samples_per_epoch)
 
         self.picture_size = picture_size
         self.shape_size = shape_size
@@ -30,10 +30,10 @@ class ShapeDataset(Dataset):
     def generate_items(self):
         # First generate the pairs we want
 
-        colors = np.random.choice(COLORS, self.epoch_size)
-        shapes = np.random.choice(SHAPES, self.epoch_size)
-        x_coordinates = np.random.choice(self.possible_coordinates, self.epoch_size)
-        y_coordinates = np.random.choice(self.possible_coordinates, self.epoch_size)
+        colors = np.random.choice(COLORS, self.samples_per_epoch)
+        shapes = np.random.choice(SHAPES, self.samples_per_epoch)
+        x_coordinates = np.random.choice(self.possible_coordinates, self.samples_per_epoch)
+        y_coordinates = np.random.choice(self.possible_coordinates, self.samples_per_epoch)
 
         classes = [
             self.possible_items.index((col, shape)) for col, shape in zip(colors, shapes)
@@ -48,7 +48,7 @@ class ShapeDataset(Dataset):
         return items, classes
 
     def __len__(self):
-        return self.epoch_size
+        return self.samples_per_epoch
 
     def __getitem__(self, idx):
         item = self.items[idx]
