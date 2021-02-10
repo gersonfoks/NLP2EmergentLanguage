@@ -64,8 +64,8 @@ class ShapeGameDataset(Dataset):
     Each image gets n_receiver-1 other images to be compared with.
     '''
 
-    def __init__(self, epoch_size=10e4, n_receiver=3, picture_size=32, shape_size=8, transform=None):
-        self.epoch_size = epoch_size
+    def __init__(self, samples_per_epoch=10e4, n_receiver=3, picture_size=32, shape_size=8, transform=None):
+        self.samples_per_epoch = int(samples_per_epoch)
 
         self.n_receiver = n_receiver
 
@@ -84,8 +84,7 @@ class ShapeGameDataset(Dataset):
         targets = []
 
         possible_items = list(product(COLORS, SHAPES))
-        for i in range(self.n_receiver):
-            target_index = np.random.choice(self.n_receiver, 1)[0]
+        for i in range(self.samples_per_epoch):
             item_ids = np.random.choice(len(possible_items), self.n_receiver, replace=False)
             x_coordinates = np.random.choice(self.possible_coordinates, self.n_receiver)
             y_coordinates = np.random.choice(self.possible_coordinates, self.n_receiver)
@@ -95,7 +94,7 @@ class ShapeGameDataset(Dataset):
                 x, y, id in
                 zip(x_coordinates, y_coordinates, item_ids)
             ]
-
+            target_index = np.random.choice(self.n_receiver, 1)[0]
             sender_items.append(items[target_index])
             receiver_items.append(items)
             targets.append(target_index)
@@ -103,7 +102,7 @@ class ShapeGameDataset(Dataset):
         return sender_items, receiver_items, targets
 
     def __len__(self):
-        return len(self.epoch_size)
+        return len(self.samples_per_epoch)
 
     def __getitem__(self, idx):
         sender_item = self.sender_items[idx]
