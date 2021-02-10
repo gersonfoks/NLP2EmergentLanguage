@@ -13,15 +13,19 @@ class ShapeDataset(Dataset):
     Each image gets n_receiver-1 other images to be compared with.
     '''
 
-    def __init__(self, epoch_size=10e4, picture_size=32, shape_size=8, transform=None):
-        self.epoch_size = epoch_size
+    def __init__(self, epoch_size=10e4, picture_size=28, shape_size=8, transform=None):
+        self.epoch_size = int(epoch_size)
 
         self.picture_size = picture_size
         self.shape_size = shape_size
         self.possible_coordinates = [i * shape_size for i in range(int(picture_size / shape_size))]
 
+        self.possible_items = list(product(COLORS, SHAPES))
+
         self.items, self.targets = self.generate_items()
         self.transform = transform
+
+
 
     def generate_items(self):
         # First generate the pairs we want
@@ -32,7 +36,7 @@ class ShapeDataset(Dataset):
         y_coordinates = np.random.choice(self.possible_coordinates, self.epoch_size)
 
         classes = [
-            (col, shape) for col, shape in zip(colors, shapes)
+            self.possible_items.index((col, shape)) for col, shape in zip(colors, shapes)
         ]
 
         items = [
@@ -44,7 +48,7 @@ class ShapeDataset(Dataset):
         return items, classes
 
     def __len__(self):
-        return len(self.epoch_size)
+        return self.epoch_size
 
     def __getitem__(self, idx):
         item = self.items[idx]

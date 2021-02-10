@@ -31,6 +31,7 @@ def train_hidden_state_model(hidden_state_model, device, train_dataloader, n_epo
             inputs = inputs.to(device)
             targets = targets.to(device)
 
+
             # Calculate model output and loss
             predictions, prediction_probabilities = hidden_state_model.to_predictions(inputs)
 

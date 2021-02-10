@@ -5,7 +5,7 @@ import numpy as np
 
 
 class HiddenStateModel(nn.Module):
-    def __init__(self, output_dim, input_channels=1):
+    def __init__(self, output_dim, input_channels=1,):
         '''
         A simple hidden state model that is used to determine the hidden state of a sender/receiver
         Can be pretrained on the labels with the use of "to_predictions" function
