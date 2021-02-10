@@ -5,7 +5,7 @@ import numpy as np
 
 
 class HiddenStateModel(nn.Module):
-    def __init__(self, output_dim):
+    def __init__(self, output_dim, input_channels=1):
         '''
         A simple hidden state model that is used to determine the hidden state of a sender/receiver
         Can be pretrained on the labels with the use of "to_predictions" function
@@ -14,7 +14,7 @@ class HiddenStateModel(nn.Module):
         super(HiddenStateModel, self).__init__()
 
         self.to_hidden = nn.Sequential(
-            nn.Conv2d(1, 32, 3, 1),
+            nn.Conv2d(input_channels, 32, 3, 1),
             nn.ReLU(),
             nn.Conv2d(32, 64, 3, 1),
             nn.ReLU(),
@@ -219,7 +219,6 @@ class SenderRnn(nn.Module):
         def fill_true(mask, ):
             start_index = 0
 
-
             for i, s in enumerate(mask):
                 if i == len(mask) - 1:
                     break
@@ -240,8 +239,7 @@ class SenderRnn(nn.Module):
         m = m.long()
         # For each message we then replace all symbols after the stop symbol to a stop symbol
 
-
-        mask = mask.unsqueeze(dim=-1).repeat(1,1, self.n_symbols)
+        mask = mask.unsqueeze(dim=-1).repeat(1, 1, self.n_symbols)
 
         one_hot = torch.nn.functional.one_hot(m)
 
