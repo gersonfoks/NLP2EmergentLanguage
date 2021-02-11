@@ -25,8 +25,6 @@ class ShapeDataset(Dataset):
         self.items, self.targets = self.generate_items()
         self.transform = transform
 
-
-
     def generate_items(self):
         # First generate the pairs we want
 
@@ -64,7 +62,7 @@ class ShapeGameDataset(Dataset):
     Each image gets n_receiver-1 other images to be compared with.
     '''
 
-    def __init__(self, samples_per_epoch=10e4, n_receiver=3, picture_size=32, shape_size=8, transform=None):
+    def __init__(self, samples_per_epoch=10e4, n_receiver=3, picture_size=28, shape_size=8, transform=None):
         self.samples_per_epoch = int(samples_per_epoch)
 
         self.n_receiver = n_receiver
@@ -94,7 +92,7 @@ class ShapeGameDataset(Dataset):
                 x, y, id in
                 zip(x_coordinates, y_coordinates, item_ids)
             ]
-            target_index = np.random.choice(self.n_receiver, 1)[0]
+            target_index = int(np.random.choice(self.n_receiver, 1)[0])
             sender_items.append(items[target_index])
             receiver_items.append(items)
             targets.append(target_index)
@@ -102,7 +100,7 @@ class ShapeGameDataset(Dataset):
         return sender_items, receiver_items, targets
 
     def __len__(self):
-        return len(self.samples_per_epoch)
+        return self.samples_per_epoch
 
     def __getitem__(self, idx):
         sender_item = self.sender_items[idx]
@@ -114,5 +112,3 @@ class ShapeGameDataset(Dataset):
             ]
 
         return sender_item, receiver_item, self.targets[idx]
-
-

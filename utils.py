@@ -5,6 +5,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
 from models.models import SenderModelFixedLength, ReceiverModuleFixedLength, PredictionRNN, SenderRnn, HiddenStateModel
+from shapeDataset import ShapeGameDataset, ShapeDataset
 from signalling_game import SignallingGameDataset
 
 
@@ -30,7 +31,6 @@ def train_hidden_state_model(hidden_state_model, device, train_dataloader, n_epo
             # Prepare data
             inputs = inputs.to(device)
             targets = targets.to(device)
-
 
             # Calculate model output and loss
             predictions, prediction_probabilities = hidden_state_model.to_predictions(inputs)
@@ -79,15 +79,30 @@ def get_sender(n_symbols, msg_len, device, fixed_size=True, pretrain=None):
     if pretrain:
         if pretrain == 'MNIST':
             hidden_state_model = get_mnist_pretrain(device)
+        if pretrain == 'shapes':
+            hidden_state_model = get_shapes_pretrain(device)
 
     if fixed_size:
-        sender = SenderModelFixedLength(10, n_symbols=n_symbols, msg_len=msg_len, hidden_state_model=hidden_state_model).to(device)
+        sender = SenderModelFixedLength(10, n_symbols=n_symbols, msg_len=msg_len,
+                                        hidden_state_model=hidden_state_model).to(device)
     else:
         sender = SenderRnn(10, n_symbols=n_symbols, msg_len=msg_len)
     return sender
 
 
-def get_receiver(n_symbols, msg_len, device, pretrain=True):
+def get_shapes_pretrain(device, n_epochs=3):
+    transform = transforms.Compose([transforms.ToTensor()])
+    data = ShapeDataset(transform=transform )
+    train_dataloader = DataLoader(data, shuffle=True, batch_size=32, )
+
+    hidden_state_model = HiddenStateModel(9, input_channels=3)
+
+
+    train_hidden_state_model(hidden_state_model, device, train_dataloader, n_epochs)
+    return hidden_state_model
+
+
+def get_receiver(n_symbols, msg_len, device, pretrain=True, ):
     '''
     Get the receiver model
     '''
@@ -95,8 +110,11 @@ def get_receiver(n_symbols, msg_len, device, pretrain=True):
     if pretrain:
         if pretrain == 'MNIST':
             hidden_state_model = get_mnist_pretrain(device)
+        if pretrain == 'shapes':
+            hidden_state_model = get_shapes_pretrain(device)
 
-    receiver = ReceiverModuleFixedLength(10, n_symbols=n_symbols, msg_len=msg_len, hidden_state_model=hidden_state_model).to(device)
+    receiver = ReceiverModuleFixedLength(10, n_symbols=n_symbols, msg_len=msg_len,
+                                         hidden_state_model=hidden_state_model).to(device)
     return receiver
 
 
@@ -119,7 +137,6 @@ def get_mnist_pretrain(device, n_epochs=2, root='./data/'):
     return hidden_state_model
 
 
-
 def cross_entropy_loss(predictions, targets):
     '''
     Custom version of the cross entropy loss. This one is used to make sure that the gradients are
@@ -127,12 +144,24 @@ def cross_entropy_loss(predictions, targets):
     '''
     eps = 0.00001
 
+    target_loss = torch.sum(- predictions * targets, dim=-1)
 
-    target_loss = torch.sum(- predictions  * targets, dim=-1)
+    log_part = torch.log(torch.sum(torch.exp(predictions + eps), dim=-1))
 
-    log_part =  torch.log(torch.sum(torch.exp(predictions + eps), dim=-1))
-
-    loss = torch.mean( target_loss+ log_part)
+    loss = torch.mean(target_loss + log_part)
 
     return loss
 
+
+def get_shape_signalling_game(samples_per_epoch=int(10e4), batch_size=32):
+    '''
+    Get a dataloader for the signalling Game
+    '''
+    transform = transforms.Compose([transforms.ToTensor()])
+    signalling_game_train = ShapeGameDataset(transform=transform, samples_per_epoch=samples_per_epoch)
+    signalling_game_test = ShapeGameDataset(transform=transform, samples_per_epoch=samples_per_epoch)
+
+    train_dataloader = DataLoader(signalling_game_train, shuffle=True, batch_size=batch_size, )
+    test_dataloader = DataLoader(signalling_game_test, shuffle=False, batch_size=batch_size, )
+
+    return train_dataloader, test_dataloader

@@ -3,13 +3,15 @@ import pytorch_lightning as pl
 
 from callbacks.msg_callback import MsgCallback, MsgFrequencyCallback
 from pl_model import SignallingGameModel
-from utils import get_mnist_signalling_game, get_sender, get_receiver, get_predictor, cross_entropy_loss
+from utils import get_mnist_signalling_game, get_sender, get_receiver, get_predictor, cross_entropy_loss, \
+    get_shape_signalling_game
 
 ###Config (Move to some file or something for easy training and experimentiation
 
 
 ### Set to a number for faster prototyping
-size = 100000
+size = int(10e4)
+max_epochs=50
 
 msg_len = 5
 n_symbols = 3
@@ -18,17 +20,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 pl.seed_everything(42)
 
-pretrain = False
+pretrain = "shapes"
 sender = get_sender(n_symbols, msg_len, device, pretrain=pretrain)
 receiver = get_receiver(n_symbols, msg_len, device, pretrain=pretrain)
 
-train_dataloader, test_dataloader = get_mnist_signalling_game(size=size)
-
-sender = get_sender(n_symbols, msg_len, device)
-receiver = get_receiver(n_symbols, msg_len, device)
+train_dataloader, test_dataloader = get_shape_signalling_game(samples_per_epoch=size)
 
 ###Todo make 128 variable
-predictor = get_predictor(n_symbols, 128, device)
+predictor = None  # get_predictor(n_symbols, 128, device)
 
 loss_module = torch.nn.CrossEntropyLoss()
 
@@ -47,7 +46,7 @@ trainer = pl.Trainer(default_root_dir='logs',
                      checkpoint_callback=False,
                      # checkpoint_callback=ModelCheckpoint(save_weights_only=True, mode="min", monitor="val_loss"),
                      gpus=1 if torch.cuda.is_available() else 0,
-                     max_epochs=20,
+                     max_epochs=max_epochs,
                      log_every_n_steps=1,
                      callbacks=[msg_callback, freq_callback],
                      progress_bar_refresh_rate=1)
