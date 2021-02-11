@@ -51,7 +51,7 @@ class HiddenStateModel(nn.Module):
 
 class SenderModelFixedLength(nn.Module):
 
-    def __init__(self, output_dim, msg_len=5, n_symbols=3, hidden_state_model=None, tau=0.5):
+    def __init__(self, output_dim, msg_len=5, n_symbols=3, hidden_state_model=None, tau=0.5, discreet=True):
         '''
         A sender that send fixed length messages
         '''
@@ -71,12 +71,13 @@ class SenderModelFixedLength(nn.Module):
         self.tau = tau
         self.msg_len = msg_len
         self.n_symbols = n_symbols
+        self.discreet = discreet
 
     def forward(self, x):
         hidden_state = self.to_hidden(x)
         output_logits = self.to_msg(hidden_state)
         output_logits = output_logits.reshape(-1, self.msg_len, self.n_symbols)
-        msg = torch.nn.functional.gumbel_softmax(output_logits, tau=self.tau, hard=True, dim=-1)
+        msg = torch.nn.functional.gumbel_softmax(output_logits, tau=self.tau, hard=self.discreet, dim=-1)
         return msg
 
 
