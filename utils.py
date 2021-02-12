@@ -90,13 +90,12 @@ def get_sender(n_symbols, msg_len, device, fixed_size=True, pretrain=None):
     return sender
 
 
-def get_shapes_pretrain(device, n_epochs=3):
+def get_shapes_pretrain(device, n_epochs=1, samples_per_epoch=int(10e3)):
     transform = transforms.Compose([transforms.ToTensor()])
-    data = ShapeDataset(transform=transform )
+    data = ShapeDataset(samples_per_epoch=samples_per_epoch, transform=transform)
     train_dataloader = DataLoader(data, shuffle=True, batch_size=32, )
 
     hidden_state_model = HiddenStateModel(9, input_channels=3)
-
 
     train_hidden_state_model(hidden_state_model, device, train_dataloader, n_epochs)
     return hidden_state_model
@@ -152,14 +151,26 @@ def cross_entropy_loss(predictions, targets):
 
     return loss
 
+def cross_entropy_loss_2(predictions, targets):
+    '''
+    Custom version of the cross entropy loss. This one is used to make sure that the gradients are
+    properly calculated. If we use the standard one, there is not way to
+    '''
+    loss_module = torch.nn.CrossEntropyLoss()
 
-def get_shape_signalling_game(samples_per_epoch=int(10e4), batch_size=32):
+    targets = torch.argmax(targets, dim=-1)
+
+    loss = loss_module(predictions, targets)
+    return loss
+
+
+def get_shape_signalling_game(samples_per_epoch_train=int(10e4), samples_per_epoch_test=int(10e3), batch_size=32):
     '''
     Get a dataloader for the signalling Game
     '''
     transform = transforms.Compose([transforms.ToTensor()])
-    signalling_game_train = ShapeGameDataset(transform=transform, samples_per_epoch=samples_per_epoch)
-    signalling_game_test = ShapeGameDataset(transform=transform, samples_per_epoch=samples_per_epoch)
+    signalling_game_train = ShapeGameDataset(transform=transform, samples_per_epoch=samples_per_epoch_train)
+    signalling_game_test = ShapeGameDataset(transform=transform, samples_per_epoch=samples_per_epoch_test)
 
     train_dataloader = DataLoader(signalling_game_train, shuffle=True, batch_size=batch_size, )
     test_dataloader = DataLoader(signalling_game_test, shuffle=False, batch_size=batch_size, )

@@ -112,3 +112,6 @@ class ShapeGameDataset(Dataset):
             ]
 
         return sender_item, receiver_item, self.targets[idx]
+
+    def reset(self):
+        self.sender_items, self.receiver_items, self.targets = self.generate_items()

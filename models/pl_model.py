@@ -14,7 +14,8 @@ class SignallingGameModel(pl.LightningModule):
 
     def forward(self, sender_img, receiver_choices):
         msg = self.sender(sender_img)
-
+        ##Make an all zeros msg to test if we are not just remembering the dataset.
+        #msg = torch.zeros((len(msg), 5, 3)).to(self.device)
         prediction_logits, prediction_probs = None, None
 
         if self.predictor:
@@ -32,6 +33,7 @@ class SignallingGameModel(pl.LightningModule):
         receiver_imgs = batch[1]
         target = batch[2].to(self.device)
 
+
         msg, out, out_probs, prediction_logits, prediction_probs = self.forward(sender_img, receiver_imgs)
 
         loss_predictor = 0
@@ -44,7 +46,7 @@ class SignallingGameModel(pl.LightningModule):
 
         loss_receiver = self.loss_module_receiver(out_probs, target)
 
-        loss = loss_receiver + 0.001 * loss_predictor
+        loss = loss_receiver + 0.002 * loss_predictor
 
         predicted_indices = torch.argmax(out_probs, dim=-1)
 
@@ -52,6 +54,7 @@ class SignallingGameModel(pl.LightningModule):
 
         self.log("loss_predictor", loss_predictor, on_step=True, on_epoch=True)
         self.log("loss_receiver", loss_receiver, on_step=True, on_epoch=True)
+        self.log("total_loss", loss, on_step=True, on_epoch=True)
         self.log("accuracy", correct, on_step=True, on_epoch=True)
 
         return loss
@@ -62,5 +65,5 @@ class SignallingGameModel(pl.LightningModule):
             parameters += list(self.predictor.parameters())
         optimizer = torch.optim.Adam(
             parameters,
-            lr=0.0001)
+            lr=0.001)
         return optimizer
