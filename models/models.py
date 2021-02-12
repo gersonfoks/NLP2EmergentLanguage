@@ -128,6 +128,11 @@ class ReceiverModuleFixedLength(nn.Module):
 
 class PredictionRNN(nn.Module):
     def __init__(self, n_words, hidden_size):
+        '''
+        A RNN that predicts the next symbol in the language
+        :param n_words:
+        :param hidden_size:
+        '''
         super(PredictionRNN, self).__init__()
         self.hidden_size = hidden_size
 
