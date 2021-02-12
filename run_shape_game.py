@@ -2,8 +2,8 @@ import torch
 import pytorch_lightning as pl
 
 from callbacks.msg_callback import MsgCallback, MsgFrequencyCallback
-from pl_model import SignallingGameModel
-from utils import get_mnist_signalling_game, get_sender, get_receiver, get_predictor, cross_entropy_loss, \
+from models.pl_model import SignallingGameModel
+from utils import get_sender, get_receiver, cross_entropy_loss, \
     get_shape_signalling_game
 
 ###Config (Move to some file or something for easy training and experimentiation
