@@ -5,7 +5,7 @@ import numpy as np
 
 
 class HiddenStateModel(nn.Module):
-    def __init__(self, output_dim, input_channels=1,):
+    def __init__(self, output_dim, input_channels=1, ):
         '''
         A simple hidden state model that is used to determine the hidden state of a sender/receiver
         Can be pretrained on the labels with the use of "to_predictions" function
@@ -126,6 +126,7 @@ class ReceiverModuleFixedLength(nn.Module):
         return out, out_probs
 
 
+# TODO: make sure that the prediction RNN works properly.
 class PredictionRNN(nn.Module):
     def __init__(self, n_words, hidden_size):
         '''
@@ -143,6 +144,10 @@ class PredictionRNN(nn.Module):
         self.n_words = n_words
 
     def forward(self, input):
+        ### TODO look at this, probably not correct, as we give the answer as input. Should start with a start symbol.
+        ### Furthermore me might want to use teacher force
+        ### Lastly we should keep track of the accuracy.
+        
         batch_size = input.shape[0]
         input = input.reshape(-1, self.n_words)
 
@@ -150,11 +155,12 @@ class PredictionRNN(nn.Module):
         embedded = embedded.reshape(batch_size, -1, self.hidden_size)
 
         out, hidden = self.gru(embedded)
-
+        print(out.shape)
         # Each hidden state put trough something to a small nn.
         predictions_logits = self.predictions(out)
 
         out_probs = torch.softmax(predictions_logits, dim=-1)
+
         return predictions_logits, out_probs, hidden
 
     def initHidden(self):
