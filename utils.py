@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader, Subset
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
-from datasets.shapeDataset import ShapeDataset
+from datasets.shapeDataset import ShapeDataset, ShapeGameDataset
 from datasets.signalling_game import SignallingGameDataset
 from models.models import SenderModelFixedLength, ReceiverModuleFixedLength, PredictionRNN, SenderRnn, HiddenStateModel
 

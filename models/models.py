@@ -150,6 +150,7 @@ class PredictionRNN(nn.Module):
         
         batch_size = input.shape[0]
 
+
         input = input.reshape(-1, self.n_words)
 
         embedded = self.embedding(input)
