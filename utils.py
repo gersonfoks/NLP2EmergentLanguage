@@ -4,9 +4,10 @@ from torch.utils.data import DataLoader, Subset
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
+from datasets.shapeDataset import ShapeDataset
+from datasets.signalling_game import SignallingGameDataset
 from models.models import SenderModelFixedLength, ReceiverModuleFixedLength, PredictionRNN, SenderRnn, HiddenStateModel
-from shapeDataset import ShapeGameDataset, ShapeDataset
-from signalling_game import SignallingGameDataset
+
 
 
 def train_hidden_state_model(hidden_state_model, device, train_dataloader, n_epochs):

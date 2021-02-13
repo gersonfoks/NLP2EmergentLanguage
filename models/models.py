@@ -149,13 +149,15 @@ class PredictionRNN(nn.Module):
         ### Lastly we should keep track of the accuracy.
         
         batch_size = input.shape[0]
+
         input = input.reshape(-1, self.n_words)
 
         embedded = self.embedding(input)
+
         embedded = embedded.reshape(batch_size, -1, self.hidden_size)
 
         out, hidden = self.gru(embedded)
-        print(out.shape)
+
         # Each hidden state put trough something to a small nn.
         predictions_logits = self.predictions(out)
 
