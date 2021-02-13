@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
 
 from models.models import HiddenStateModel
-from shapeDataset import ShapeDataset
+from datasets.shapeDataset import ShapeDataset
 from utils import train_hidden_state_model
 
 transform = transforms.Compose([transforms.ToTensor()])

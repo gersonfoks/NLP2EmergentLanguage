@@ -15,11 +15,14 @@ class SignallingGameModel(pl.LightningModule):
     def forward(self, sender_img, receiver_choices):
         msg = self.sender(sender_img)
         ##Make an all zeros msg to test if we are not just remembering the dataset.
-        #msg = torch.zeros((len(msg), 5, 3)).to(self.device)
+        # msg = torch.zeros((len(msg), 5, 3)).to(self.device)
         prediction_logits, prediction_probs = None, None
 
         if self.predictor:
-            prediction_logits, prediction_probs, hidden = self.predictor(msg)
+            start_symbols = torch.zeros(len(sender_img), 1, self.sender.n_symbols).to(self.device)
+            msgs = torch.cat([start_symbols, msg], dim=1)[:]
+            msg_in = msgs[:, :-1]
+            prediction_logits, prediction_probs, hidden = self.predictor(msg_in)
 
         out, out_probs = self.receiver(receiver_choices, msg)
 
@@ -33,20 +36,27 @@ class SignallingGameModel(pl.LightningModule):
         receiver_imgs = batch[1]
         target = batch[2].to(self.device)
 
-
         msg, out, out_probs, prediction_logits, prediction_probs = self.forward(sender_img, receiver_imgs)
 
         loss_predictor = 0
         if self.predictor:
-            prediction_squeazed = prediction_probs.reshape(-1, self.sender.n_symbols)
 
-            msg_squezed = msg.reshape(-1, self.sender.n_symbols)
+            prediction_squeezed = prediction_logits.reshape(-1, self.sender.n_symbols)
+            prediction_probs = prediction_probs.reshape(-1, self.sender.n_symbols)
+            msg_target = msg.reshape(-1, self.sender.n_symbols)
 
-            loss_predictor = self.loss_module_predictor(prediction_squeazed, msg_squezed)
+            loss_predictor = self.loss_module_predictor(prediction_squeezed, msg_target)
+            indices = torch.argmax(msg_target, dim=-1)
+            accuracyPredictions = torch.argmax(prediction_probs, dim=-1)
+
+            correct = (accuracyPredictions == indices).sum().item()
+            predictor_accuracy = correct / len(indices)
+            ### Log the accuracy
+            self.log("accuracy predictor", predictor_accuracy, on_step=True, on_epoch=True)
 
         loss_receiver = self.loss_module_receiver(out_probs, target)
 
-        loss = loss_receiver + 0.002 * loss_predictor
+        loss = loss_receiver + 0.001 * loss_predictor
 
         predicted_indices = torch.argmax(out_probs, dim=-1)
 
