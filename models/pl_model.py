@@ -2,9 +2,9 @@ import pytorch_lightning as pl
 import torch
 
 
-class SignallingGameModel(pl.LightningModule):
-
-    def __init__(self, sender, receiver, loss_module_receiver, predictor=None, loss_module_predictor=None, hparams=None):
+class BaseSignaallingGameModel(pl.LightningModule):
+    def __init__(self, sender, receiver, loss_module_receiver, predictor=None, loss_module_predictor=None,
+                 hparams=None):
         super().__init__()
         self.sender = sender
         self.receiver = receiver
@@ -12,24 +12,6 @@ class SignallingGameModel(pl.LightningModule):
         self.loss_module_receiver = loss_module_receiver
         self.loss_module_predictor = loss_module_predictor
         self.hparams = hparams
-
-
-
-    def forward(self, sender_img, receiver_choices):
-        msg = self.sender(sender_img)
-        ##Make an all zeros msg to test if we are not just remembering the dataset.
-        # msg = torch.zeros((len(msg), 5, 3)).to(self.device)
-        prediction_logits, prediction_probs = None, None
-
-        if self.predictor:
-            start_symbols = torch.zeros(len(sender_img), 1, self.sender.n_symbols).to(self.device)
-            msgs = torch.cat([start_symbols, msg], dim=1)[:]
-            msg_in = msgs[:, :-1]
-            prediction_logits, prediction_probs, hidden = self.predictor(msg_in)
-
-        out, out_probs = self.receiver(receiver_choices, msg)
-
-        return msg, out, out_probs, prediction_logits, prediction_probs
 
     def training_step(self, batch, batch_idx):
 
@@ -43,7 +25,6 @@ class SignallingGameModel(pl.LightningModule):
 
         loss_predictor = 0
         if self.predictor:
-
             prediction_squeezed = prediction_logits.reshape(-1, self.sender.n_symbols)
             prediction_probs = prediction_probs.reshape(-1, self.sender.n_symbols)
             msg_target = msg.reshape(-1, self.sender.n_symbols)
@@ -76,6 +57,55 @@ class SignallingGameModel(pl.LightningModule):
         parameters = list(self.sender.parameters()) + list(self.receiver.parameters())
         if self.predictor:
             parameters += list(self.predictor.parameters())
+        optimizer = torch.optim.Adam(
+            parameters,
+            lr=self.hparams['learning_rate'])
+        return optimizer
+
+
+class SignallingGameModel(BaseSignaallingGameModel):
+
+    def forward(self, sender_img, receiver_choices):
+        msg = self.sender(sender_img)
+        ##Make an all zeros msg to test if we are not just remembering the dataset.
+        # msg = torch.zeros((len(msg), 5, 3)).to(self.device)
+        prediction_logits, prediction_probs = None, None
+
+        if self.predictor:
+            start_symbols = torch.zeros(len(sender_img), 1, self.sender.n_symbols).to(self.device)
+            msgs = torch.cat([start_symbols, msg], dim=1)[:]
+            msg_in = msgs
+            prediction_logits, prediction_probs, hidden = self.predictor(msg_in)
+
+        out, out_probs = self.receiver(receiver_choices, msg)
+
+        return msg, out, out_probs, prediction_logits, prediction_probs
+
+
+class SharedSignallingGameModel(BaseSignaallingGameModel):
+
+    def __init__(self, sender, receiver, loss_module_receiver, predictor=None, loss_module_predictor=None,
+                 hparams=None):
+        super().__init__(sender, receiver, loss_module_receiver, predictor=True,
+                         loss_module_predictor=loss_module_predictor,
+                         hparams=hparams)
+
+
+    def forward(self, sender_img, receiver_choices):
+        msg = self.sender(sender_img)
+
+        start_symbols = torch.zeros(len(sender_img), 1, self.sender.n_symbols).to(self.device)
+        msgs = torch.cat([start_symbols, msg], dim=1)[:]
+        msg_in = msgs
+        out, out_probs, prediction_logits, prediction_probs, hidden = self.receiver(receiver_choices, msg_in)
+
+
+
+        return msg, out, out_probs, prediction_logits, prediction_probs
+
+    def configure_optimizers(self):
+        parameters = list(self.sender.parameters()) + list(self.receiver.parameters())
+
         optimizer = torch.optim.Adam(
             parameters,
             lr=self.hparams['learning_rate'])

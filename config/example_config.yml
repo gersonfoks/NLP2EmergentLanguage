@@ -5,10 +5,10 @@ seed: 42
 samples_per_epoch_train: 10000
 samples_per_epoch_test: 10000
 max_epochs: 10
-
+n_choices: 3
 
 #Language
-msg_len: 5
+msg_len: 1
 n_symbols: 5
 
 # Pretraining
@@ -18,14 +18,20 @@ pretrain_n_epochs: 1
 
 #Training settings
 learning_rate: 0.001
-batch_size: 128
+batch_size: 32
+
+
+#Experiment type
+model_type: "separate" # shared (predictor and receiver share parameters or they don't)
+
 
 # Sender params:
-fixed_size: False
+fixed_size: True
 
 
 # Predictor settings
 predictor_loss_weight: 0
+hidden_size_predictor: 128
 
 
 

@@ -6,7 +6,8 @@ from torchvision.transforms import transforms
 
 from datasets.shapeDataset import ShapeDataset, ShapeGameDataset
 from datasets.signalling_game import SignallingGameDataset
-from models.models import SenderModelFixedLength, ReceiverModuleFixedLength, PredictionRNN, SenderRnn, HiddenStateModel
+from models.models import SenderModelFixedLength, ReceiverModuleFixedLength, PredictionRNN, SenderRnn, HiddenStateModel, \
+    ReceiverCombined
 
 
 def train_hidden_state_model(hidden_state_model, device, train_dataloader, n_epochs):
@@ -122,6 +123,18 @@ def get_predictor(n_symbols, hidden_size, device):
     predictor = PredictionRNN(n_symbols, hidden_size).to(device)
     return predictor
 
+def get_receiver_predictor_combined(n_symbols, n_xs, device, pretrain=True, pretrain_n_epochs=3, hidden_size=128):
+    hidden_state_model = None
+    if pretrain:
+        if pretrain == 'MNIST':
+            hidden_state_model = get_mnist_pretrain(device)
+        if pretrain == 'shapes':
+            hidden_state_model = get_shapes_pretrain(device, n_epochs=pretrain_n_epochs)
+
+    predictor = PredictionRNN(n_symbols, hidden_size).to(device)
+
+    combined_model = ReceiverCombined(hidden_state_model, predictor, n_xs)
+    return combined_model
 
 def get_mnist_pretrain(device, n_epochs=2, root='./data/'):
     transform = transforms.Compose([transforms.ToTensor()])

@@ -144,24 +144,24 @@ class PredictionRNN(nn.Module):
         self.n_words = n_words
 
     def forward(self, input):
-
         batch_size = input.shape[0]
-
 
         input = input.reshape(-1, self.n_words)
 
         embedded = self.embedding(input)
 
-        embedded = embedded.reshape(batch_size, -1, self.hidden_size)
+        embedded = embedded.reshape(-1, batch_size, self.hidden_size)
 
         out, hidden = self.gru(embedded)
 
+        out = out[:-1]
+
         # Each hidden state put trough something to a small nn.
-        predictions_logits = self.predictions(out)
+        predictions_logits = self.predictions(out.squeeze(dim=0))
 
         out_probs = torch.softmax(predictions_logits, dim=-1)
 
-        return predictions_logits, out_probs, hidden
+        return predictions_logits, out_probs, hidden.squeeze(dim=0)
 
     def initHidden(self):
         return torch.zeros(1, 1, self.hidden_size)
@@ -180,6 +180,7 @@ class SenderRnn(nn.Module):
             self.to_hidden = HiddenStateModel(output_dim)
 
         self.hidden_state_size = self.to_hidden.hidden_state_size
+
         self.gru = nn.GRU(self.hidden_state_size, self.hidden_state_size)
 
         self.to_symbol = nn.Sequential(
@@ -257,3 +258,46 @@ class SenderRnn(nn.Module):
 
         msg = msg * ~mask + one_hot * mask
         return msg.float()
+
+
+class ReceiverCombined(nn.Module):
+
+    def __init__(self, hidden_model, rnn_model, n_xs, ):
+        super(ReceiverCombined, self).__init__()
+        self.hidden_model = hidden_model
+        self.rnn_model = rnn_model
+        self.hidden_state_size = hidden_model.hidden_state_size
+
+        self.n_xs = n_xs
+
+        self.to_prediction = nn.Sequential(
+            nn.Linear(self.hidden_model.hidden_state_size * n_xs + self.rnn_model.hidden_size, 128),
+            # Look at the msg and all the hidden states side by side.
+            nn.ReLU(),
+            nn.Linear(128, n_xs)
+        )
+
+    def forward(self, xs, msg):
+        hidden_states = []
+        for x in xs:
+            hidden_state = self.hidden_model(x).unsqueeze(1)
+            hidden_states.append(hidden_state)
+
+        hidden = torch.cat(hidden_states, dim=1)
+        hidden_states_imgs = hidden.reshape(-1, self.hidden_state_size * self.n_xs)
+
+        ### Put it one after the other
+        prediction_logits, prediction_probs, hidden_msg = self.rnn_model(msg)
+
+
+
+        ###Get the predictions and the hidden state
+
+
+        hidden_concat = torch.cat([hidden_states_imgs, hidden_msg], dim=-1)
+
+        out = self.to_prediction(hidden_concat)
+
+        out_probs = torch.softmax(out, dim=-1)
+
+        return out, out_probs, prediction_logits, prediction_probs, hidden_msg
