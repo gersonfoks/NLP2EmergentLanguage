@@ -144,10 +144,7 @@ class PredictionRNN(nn.Module):
         self.n_words = n_words
 
     def forward(self, input):
-        ### TODO look at this, probably not correct, as we give the answer as input. Should start with a start symbol.
-        ### Furthermore me might want to use teacher force
-        ### Lastly we should keep track of the accuracy.
-        
+
         batch_size = input.shape[0]
 
 

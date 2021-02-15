@@ -4,13 +4,16 @@ import torch
 
 class SignallingGameModel(pl.LightningModule):
 
-    def __init__(self, sender, receiver, loss_module_receiver, predictor=None, loss_module_predictor=None):
+    def __init__(self, sender, receiver, loss_module_receiver, predictor=None, loss_module_predictor=None, hparams=None):
         super().__init__()
         self.sender = sender
         self.receiver = receiver
         self.predictor = predictor
         self.loss_module_receiver = loss_module_receiver
         self.loss_module_predictor = loss_module_predictor
+        self.hparams = hparams
+
+
 
     def forward(self, sender_img, receiver_choices):
         msg = self.sender(sender_img)
@@ -56,7 +59,7 @@ class SignallingGameModel(pl.LightningModule):
 
         loss_receiver = self.loss_module_receiver(out_probs, target)
 
-        loss = loss_receiver + 0.001 * loss_predictor
+        loss = loss_receiver + self.hparams['predictor_loss_weight'] * loss_predictor
 
         predicted_indices = torch.argmax(out_probs, dim=-1)
 
@@ -75,5 +78,5 @@ class SignallingGameModel(pl.LightningModule):
             parameters += list(self.predictor.parameters())
         optimizer = torch.optim.Adam(
             parameters,
-            lr=0.001)
+            lr=self.hparams['learning_rate'])
         return optimizer

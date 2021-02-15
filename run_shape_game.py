@@ -20,7 +20,7 @@ n_symbols = 5
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-pl.seed_everything(42)
+
 
 pretrain = "shapes"
 sender = get_sender(n_symbols, msg_len, device, pretrain=pretrain)

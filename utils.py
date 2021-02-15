@@ -9,7 +9,6 @@ from datasets.signalling_game import SignallingGameDataset
 from models.models import SenderModelFixedLength, ReceiverModuleFixedLength, PredictionRNN, SenderRnn, HiddenStateModel
 
 
-
 def train_hidden_state_model(hidden_state_model, device, train_dataloader, n_epochs):
     '''
     Function to pretrain the hidden state model. 
@@ -70,28 +69,26 @@ def get_mnist_signalling_game(batch_size=32, size=None):
     return train_dataloader, test_dataloader
 
 
-def get_sender(n_symbols, msg_len, device, fixed_size=True, pretrain=None):
+def get_sender(n_symbols, msg_len, device, fixed_size=True, pretrain=None, pretrain_n_epochs=3):
     '''
     Get the sender model
     '''
-    sender = None
-
     hidden_state_model = None
     if pretrain:
         if pretrain == 'MNIST':
             hidden_state_model = get_mnist_pretrain(device)
         if pretrain == 'shapes':
-            hidden_state_model = get_shapes_pretrain(device)
+            hidden_state_model = get_shapes_pretrain(device, n_epochs=pretrain_n_epochs)
 
     if fixed_size:
         sender = SenderModelFixedLength(10, n_symbols=n_symbols, msg_len=msg_len,
                                         hidden_state_model=hidden_state_model).to(device)
     else:
-        sender = SenderRnn(10, n_symbols=n_symbols, msg_len=msg_len)
+        sender = SenderRnn(10, n_symbols=n_symbols, msg_len=msg_len, hidden_state_model=hidden_state_model).to(device)
     return sender
 
 
-def get_shapes_pretrain(device, n_epochs=1, samples_per_epoch=int(10e3)):
+def get_shapes_pretrain(device, n_epochs=3, samples_per_epoch=int(10e3)):
     transform = transforms.Compose([transforms.ToTensor()])
     data = ShapeDataset(samples_per_epoch=samples_per_epoch, transform=transform)
     train_dataloader = DataLoader(data, shuffle=True, batch_size=32, )
@@ -102,7 +99,7 @@ def get_shapes_pretrain(device, n_epochs=1, samples_per_epoch=int(10e3)):
     return hidden_state_model
 
 
-def get_receiver(n_symbols, msg_len, device, pretrain=True, ):
+def get_receiver(n_symbols, msg_len, device, pretrain=True, pretrain_n_epochs=3):
     '''
     Get the receiver model
     '''
@@ -111,7 +108,7 @@ def get_receiver(n_symbols, msg_len, device, pretrain=True, ):
         if pretrain == 'MNIST':
             hidden_state_model = get_mnist_pretrain(device)
         if pretrain == 'shapes':
-            hidden_state_model = get_shapes_pretrain(device)
+            hidden_state_model = get_shapes_pretrain(device, n_epochs=pretrain_n_epochs)
 
     receiver = ReceiverModuleFixedLength(10, n_symbols=n_symbols, msg_len=msg_len,
                                          hidden_state_model=hidden_state_model).to(device)
@@ -151,6 +148,7 @@ def cross_entropy_loss(predictions, targets):
     loss = torch.mean(target_loss + log_part)
 
     return loss
+
 
 def cross_entropy_loss_2(predictions, targets):
     '''
