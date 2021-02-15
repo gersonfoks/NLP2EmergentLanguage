@@ -197,6 +197,44 @@ class EntropyMeasure(Measure):
         return result
 
 
+class MsgLength(Measure):
+
+    def __init__(self, name, stop_symbol=None):
+        '''
+
+        :param name: name of the measure
+        :param fixed_length_message: The stop sign that is used
+        :param n_gram: how big the ngrams should be.
+        '''
+        super().__init__(name)
+        self.stop_symbol = stop_symbol
+
+    def make_measure(self, msgs):
+        mask = ~msgs.ge(self.stop_symbol)
+
+        msgs = torch.masked_select(msgs, mask)
+
+        total_len = len(msgs)
+        n_msgs = mask.shape[0]
+
+        return 1 + total_len / n_msgs
+
+
+class DistinctSymbolMeasure(Measure):
+
+    def __init__(self, name):
+        '''
+
+        :param name: name of the measure
+        :param fixed_length_message: The stop sign that is used
+        :param n_gram: how big the ngrams should be.
+        '''
+        super().__init__(name)
+
+    def make_measure(self, msgs):
+        return len(torch.unique(msgs))
+
+
 class ResetDatasetCallback(pl.Callback):
 
     def __init__(self, dataset, every_n_epochs=1):

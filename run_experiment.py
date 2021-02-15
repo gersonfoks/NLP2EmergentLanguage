@@ -5,7 +5,7 @@ import argparse
 import yaml
 
 from callbacks.msg_callback import MsgCallback, MsgFrequencyCallback, EntropyMeasure, MeasureCallbacks, \
-    ResetDatasetCallback
+    ResetDatasetCallback, MsgLength, DistinctSymbolMeasure
 from models.pl_model import SignallingGameModel
 from utils import get_sender, get_receiver, get_shape_signalling_game, get_predictor, cross_entropy_loss_2
 
@@ -34,10 +34,12 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 pretrain = config["pretrain"]
 
-sender = get_sender(n_symbols, msg_len, device, fixed_size=config["fixed_size"],pretrain=pretrain, pretrain_n_epochs=config["pretrain_n_epochs"])
+sender = get_sender(n_symbols, msg_len, device, fixed_size=config["fixed_size"], pretrain=pretrain,
+                    pretrain_n_epochs=config["pretrain_n_epochs"])
 receiver = get_receiver(n_symbols, msg_len, device, pretrain=pretrain, pretrain_n_epochs=config["pretrain_n_epochs"])
 
-train_dataloader, test_dataloader = get_shape_signalling_game(batch_size=config["batch_size"], samples_per_epoch_train=samples_per_epoch_train,
+train_dataloader, test_dataloader = get_shape_signalling_game(batch_size=config["batch_size"],
+                                                              samples_per_epoch_train=samples_per_epoch_train,
                                                               samples_per_epoch_test=samples_per_epoch_test)
 
 predictor = get_predictor(n_symbols, 128, device)
@@ -58,8 +60,10 @@ freq_callback = MsgFrequencyCallback(to_sample_from)
 ### We create all the measures
 symbol_entropy = EntropyMeasure('symbol entropy')
 bi_gram_entropy = EntropyMeasure('bigram entropy', n_gram=2)
+len_measure = MsgLength('avg msg length', stop_symbol=config['n_symbols'] - 1)
+distinct_symbol_measure = DistinctSymbolMeasure('Number of distinct symbols')
 
-measure_callbacks = MeasureCallbacks(test_dataloader, measures=[symbol_entropy, bi_gram_entropy])
+measure_callbacks = MeasureCallbacks(test_dataloader, measures=[symbol_entropy, bi_gram_entropy, len_measure, distinct_symbol_measure])
 
 reset_trainer = ResetDatasetCallback(train_dataloader.dataset)
 
@@ -78,5 +82,3 @@ trainer.logger._default_hp_metric = None  # Optional logging argument that we do
 
 
 trainer.fit(signalling_game_model, train_dataloader)
-
-

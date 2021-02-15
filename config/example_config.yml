@@ -13,7 +13,7 @@ n_symbols: 5
 
 # Pretraining
 pretrain: "shapes"
-pretrain_n_epochs: 3
+pretrain_n_epochs: 1
 
 
 #Training settings
@@ -25,7 +25,7 @@ fixed_size: False
 
 
 # Predictor settings
-predictor_loss_weight: 0.001
+predictor_loss_weight: 0
 
 
 
