@@ -48,7 +48,7 @@ class SenderRnn(nn.Module):
 
         self.hidden_state_size = self.feature_encoder.hidden_state_size
 
-        self.rnn = nn.GRU(self.n_symbols, self.hidden_state_size)
+        self.rnn = nn.LSTM(self.n_symbols, self.hidden_state_size)
 
         self.to_symbol = nn.Sequential(
             nn.ReLU(),
@@ -68,18 +68,16 @@ class SenderRnn(nn.Module):
         hidden_state = self.feature_encoder(x)
 
         hidden_state = hidden_state.view(1, len(x), -1)
-        #cell_state = torch.zeros(1, len(x), self.hidden_state_size).to(hidden_state.device)
+        cell_state = torch.zeros(1, len(x), self.hidden_state_size).to(hidden_state.device)
         start_symbol = torch.zeros((1, len(x), self.n_symbols)).to(hidden_state.device)
-        #hidden_state = (hidden_state, cell_state)
+        hidden_state = (hidden_state, cell_state)
         current_symbol = start_symbol
         result = []
-
 
         for i in range(self.msg_len):
             out, hidden_state = self.rnn(current_symbol, hidden_state)
             out = out.view(-1, self.feature_encoder.hidden_state_size)
             out = self.to_symbol(out).view(1, -1, self.n_symbols)
-
 
             symbol = torch.nn.functional.gumbel_softmax(out, tau=self.tau, hard=False, dim=-1)
             current_symbol = symbol
@@ -87,7 +85,6 @@ class SenderRnn(nn.Module):
             result.append(symbol)
 
         msg = torch.cat(result, dim=0)
-
 
         # ##Now we need to the stop words in the msg
         #
@@ -153,27 +150,23 @@ class SenderFixed(nn.Module):
             nn.Linear(self.hidden_state_size, msg_len * n_symbols)
         )
 
-
-
         self.tau = tau
         self.msg_len = msg_len
         self.n_symbols = n_symbols
 
     def forward(self, x):
-
         ###Generate messages of length msg_len. Once the stop symbol (highest number in our alphabet) is generated the rest of the string will be filled with that sign
 
         hidden_state = self.feature_encoder(x)
         msg_logits = self.to_msg(hidden_state)
-        msg_logits = msg_logits.reshape(self.msg_len, len(x),   self.n_symbols)
+        msg_logits = msg_logits.reshape(self.msg_len, len(x), self.n_symbols)
         msg = torch.nn.functional.gumbel_softmax(msg_logits, tau=self.tau, hard=True, dim=-1)
 
         # ##Now we need to the stop words in the msg
         #
-        # msg = self.add_stop_symbols(msg)
+        #msg = self.add_stop_symbols(msg)
 
         return msg
-
 
 
 class ReceiverFixed(nn.Module):
@@ -199,54 +192,6 @@ class ReceiverFixed(nn.Module):
             nn.ReLU(),
             nn.Linear(self.hidden_state_size * (self.n_xs + 1), self.hidden_state_size),
             nn.ReLU(),
-            nn.Linear(self.hidden_state_size,self.n_xs  )
-        )
-
-    def forward(self, xs, msg):
-        hidden_states = []
-        for x in xs:
-            hidden_state = self.feature_encoder(x)
-
-            hidden_states.append(hidden_state)
-
-        # Permute the msg to make sure that the batch is second
-
-
-
-        msg = msg.view(msg.shape[1], -1)
-
-        hidden_msg = self.msg_to_hidden(msg)
-        # Permute back
-
-        hidden_states.append(hidden_msg)
-
-        hidden = torch.cat(hidden_states, dim=1)
-
-        out = self.to_prediction(hidden)
-
-        out_probs = torch.softmax(out, dim=-1)
-        return out, out_probs
-
-
-class ReceiverRnn(nn.Module):
-    def __init__(self, feature_encoder, n_xs, n_symbols=3, msg_len=3 ):
-        '''
-        A sender that send fixed length messages
-        '''
-        super(ReceiverRnn, self).__init__()
-        self.feature_encoder = feature_encoder
-        self.n_symbols = n_symbols
-        self.n_xs = n_xs
-
-        self.hidden_state_size = self.feature_encoder.hidden_state_size
-
-        self.rnn = nn.RNN(self.n_symbols, self.hidden_state_size)
-
-        self.to_prediction = nn.Sequential(
-
-            nn.ReLU(),
-            nn.Linear(self.hidden_state_size * (self.n_xs + 1), self.hidden_state_size),
-            nn.ReLU(),
             nn.Linear(self.hidden_state_size, self.n_xs)
         )
 
@@ -259,17 +204,14 @@ class ReceiverRnn(nn.Module):
 
         # Permute the msg to make sure that the batch is second
 
-        rnn_out, rnn_hidden_state = self.rnn(msg)
+        msg = msg.view(msg.shape[1], -1)
 
+        hidden_msg = self.msg_to_hidden(msg)
         # Permute back
-        rnn_out = rnn_out[-1, :, :]
 
-        hidden_states.append(rnn_out)
+        hidden_states.append(hidden_msg)
 
         hidden = torch.cat(hidden_states, dim=1)
-
-
-
 
         out = self.to_prediction(hidden)
 
@@ -289,8 +231,6 @@ class OnePlayer(nn.Module):
 
         self.hidden_state_size = self.feature_encoder.hidden_state_size
 
-
-
         self.to_prediction = nn.Sequential(
             nn.ReLU(),
             nn.Linear(self.hidden_state_size * (self.n_xs + 1), self.hidden_state_size),
@@ -307,11 +247,9 @@ class OnePlayer(nn.Module):
 
         # Permute the msg to make sure that the batch is second
 
-
         hidden = torch.cat(hidden_states, dim=1)
 
         out = self.to_prediction(hidden)
 
         out_probs = torch.softmax(out, dim=-1)
         return out, out_probs
-
