@@ -79,7 +79,7 @@ class SenderRnn(nn.Module):
             out = out.view(-1, self.feature_encoder.hidden_state_size)
             out = self.to_symbol(out).view(1, -1, self.n_symbols)
 
-            symbol = torch.nn.functional.gumbel_softmax(out, tau=self.tau, hard=False, dim=-1)
+            symbol = torch.nn.functional.gumbel_softmax(out, tau=self.tau, hard=True, dim=-1)
             current_symbol = symbol
 
             result.append(symbol)

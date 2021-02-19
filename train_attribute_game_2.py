@@ -12,7 +12,7 @@ size_attributes = 2
 
 
 def train_feature_encoder():
-    n_epochs = 1
+    n_epochs = 3
 
     dataset = AttributeDataset(n_attributes, size_attributes, samples_per_epoch=1000)
 
@@ -53,9 +53,9 @@ def train_feature_encoder():
     return classifier
 
 
-msg_len = 3
+msg_len = 2
 n_symbols = 250
-n_receiver = 3
+n_receiver = 2
 feature_encoder_sender = train_feature_encoder()
 feature_encoder_receiver = train_feature_encoder()
 
@@ -64,14 +64,14 @@ receiver = ReceiverLSTM(feature_encoder_receiver, n_receiver, n_symbols=n_symbol
 
 dataset = AttributeGameDataset(n_attributes, size_attributes, n_receiver=n_receiver, samples_per_epoch=int(10e3))
 
-train_dataloader = DataLoader(dataset, batch_size=128)
+train_dataloader = DataLoader(dataset, batch_size=8)
 
 loss_module = torch.nn.CrossEntropyLoss()
 parameters = list(sender.parameters()) + list(receiver.parameters())
 
 optimizer = torch.optim.Adam(
     parameters,
-    lr=0.001)
+    lr=0.01)
 
 ### The actual training loop
 n_epochs = 50
