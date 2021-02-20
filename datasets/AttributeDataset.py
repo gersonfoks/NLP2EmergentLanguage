@@ -2,7 +2,7 @@ from itertools import permutations, product
 
 import torch
 from torch.utils.data import Dataset, DataLoader
-from torchvision.datasets import MNIST, FashionMNIST, CIFAR10
+
 import numpy as np
 
 
@@ -134,7 +134,7 @@ def get_attribute_game(n_attributes, size_attributes, samples_per_epoch_train=in
     '''
 
     signalling_game_train = AttributeGameDataset(n_attributes, size_attributes,
-                                                 samples_per_epoch=samples_per_epoch_train)
+                                                 samples_per_epoch=samples_per_epoch_train, )
     signalling_game_test = AttributeGameDataset(n_attributes, size_attributes, samples_per_epoch=samples_per_epoch_test)
 
     train_dataloader = DataLoader(signalling_game_train, shuffle=True, batch_size=batch_size, )

@@ -18,7 +18,7 @@ attributes_size = 2
 n_receiver = 3
 
 n_symbols = 25
-msg_len = 10
+msg_len = 5
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 samples_per_epoch_train = int(10e3)
@@ -27,10 +27,11 @@ max_epochs = 20
 
 
 
-msg_len = 1
-n_symbols = 25
+
 
 fixed_size = False
+pack_message = True
+
 pretrain_n_epochs = 3
 
 hparams = {'learning_rate': 0.0001}
@@ -46,7 +47,7 @@ train_dataloader, test_dataloader = get_attribute_game(n_attributes, attributes_
 
 loss_module = torch.nn.CrossEntropyLoss()
 
-signalling_game_model = AttributeBaseLineModel(sender, receiver, loss_module, hparams=hparams).to(device)
+signalling_game_model = AttributeBaseLineModel(sender, receiver, loss_module, hparams=hparams, pack_message=pack_message).to(device)
 
 to_sample_from = next(iter(test_dataloader))[:5]
 

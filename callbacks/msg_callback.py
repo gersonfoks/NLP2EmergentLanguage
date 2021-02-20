@@ -36,7 +36,7 @@ class MsgCallback(pl.Callback):
             choices = []
             for choice in self.sender_choices:
                 choices.append(choice.to(pl_module.device))
-            msg, out, out_probs, prediction_logits, prediction_probs = pl_module.forward(self.receiver_imgs, choices)
+            msg, msg_packed, out, out_probs, prediction_logits, prediction_probs = pl_module.forward(self.receiver_imgs, choices)
 
             logger = trainer.logger.experiment
 
@@ -45,7 +45,8 @@ class MsgCallback(pl.Callback):
             logger.add_text('msgs', text, trainer.current_epoch)
 
     def msg_to_text(self, msg):
-        indices = torch.argmax(msg, dim=-1)
+
+        indices = torch.argmax(msg.permute(1,0,2), dim=-1)
 
         indices_numpy = indices.cpu().numpy()
 
@@ -86,7 +87,7 @@ class MsgFrequencyCallback(pl.Callback):
             choices = []
             for choice in self.sender_choices:
                 choices.append(choice.to(pl_module.device))
-            msg, out, out_probs, prediction_logits, prediction_probs = pl_module.forward(self.receiver_imgs, choices)
+            msg, msg_packed, out, out_probs, prediction_logits, prediction_probs = pl_module.forward(self.receiver_imgs, choices)
 
             logger = trainer.logger.experiment
 
@@ -134,7 +135,7 @@ class MeasureCallbacks(pl.Callback):
                 sender_imgs = sender_imgs.to(pl_module.device)
                 receiver_imgs = [receiver_img.to(pl_module.device) for receiver_img in receiver_imgs]
 
-                msg, out, out_probs, prediction_logits, prediction_probs = pl_module.forward(sender_imgs, receiver_imgs)
+                msg, msg_packed, out, out_probs, prediction_logits, prediction_probs = pl_module.forward(sender_imgs, receiver_imgs)
 
                 #Make batch first
                 msg = torch.argmax(msg, dim=-1).permute(1,0)

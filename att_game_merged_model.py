@@ -1,8 +1,8 @@
 import torch
 import pytorch_lightning as pl
 
-from attribute_game.pl_model import AttributeBaseLineModel, AttributeModelWithPrediction
-from attribute_game.utils import get_sender, get_receiver, get_predictor
+from attribute_game.pl_model import AttributeBaseLineModel, AttributeModelWithPrediction, AttributeModelMerged
+from attribute_game.utils import get_sender, get_receiver, get_predictor, get_receiver_predictor
 from callbacks.msg_callback import MsgCallback, MsgFrequencyCallback, EntropyMeasure, MeasureCallbacks, \
     ResetDatasetCallback, DistinctSymbolMeasure
 
@@ -18,7 +18,8 @@ attributes_size = 2
 
 n_receiver = 3
 
-
+n_symbols = 25
+msg_len = 10
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 samples_per_epoch_train = int(10e3)
@@ -27,7 +28,7 @@ max_epochs = 20
 
 hidden_size_predictor = 128
 
-msg_len = 5
+msg_len = 1
 n_symbols = 25
 
 fixed_size = False
@@ -37,7 +38,7 @@ hparams = {'learning_rate': 0.001, "predictor_loss_weight": 0.0001}
 
 sender = get_sender(n_attributes, attributes_size, n_symbols, msg_len, device, fixed_size=fixed_size,
                     pretrain_n_epochs=pretrain_n_epochs)
-receiver = get_receiver(n_attributes, attributes_size, n_receiver, n_symbols, msg_len, device, fixed_size=fixed_size,
+receiver_predictor = get_receiver_predictor(n_attributes, attributes_size, n_receiver, n_symbols, msg_len, device, fixed_size=fixed_size,
                         pretrain_n_epochs=pretrain_n_epochs)
 
 predictor = get_predictor(n_symbols, hidden_size_predictor, device)
@@ -49,7 +50,7 @@ train_dataloader, test_dataloader = get_attribute_game(n_attributes, attributes_
 loss_module = torch.nn.CrossEntropyLoss()
 loss_module_predictor = cross_entropy_loss_2
 
-signalling_game_model = AttributeModelWithPrediction(sender, receiver, loss_module, predictor, loss_module_predictor,
+signalling_game_model = AttributeModelMerged(sender, receiver_predictor, loss_module, predictor, loss_module_predictor,
                                                      hparams=hparams).to(device)
 
 to_sample_from = next(iter(test_dataloader))[:5]

@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import numpy as np
+from torch.nn.utils.rnn import pack_padded_sequence
 
 
 class FeatureEncoder(nn.Module):
@@ -84,23 +85,26 @@ class SenderRnn(nn.Module):
 
             result.append(symbol)
 
-        msg = torch.cat(result, dim=0)
+        msg = torch.cat(result)
 
-        # ##Now we need to the stop words in the msg
-        #
-        # msg = self.add_stop_symbols(msg)
+
+        msg = self.add_stop_symbols(msg)
+
+
 
         return msg
 
     def add_stop_symbols(self, msg):
 
-        ##TODO: fix this bad programming
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+        ### Get the symbols
         symbol_tensor = torch.argmax(msg, dim=-1)
 
-        stop_symbol_tensor = symbol_tensor == self.n_symbols - 1
+        ### Get tensor which has true whenever there is a stop symbol
+        stop_symbol_tensor = symbol_tensor == 0
 
+        ### Move it to numpy
         np_stop_symbol_tensor = stop_symbol_tensor.cpu().numpy()
 
         def fill_true(mask, ):
@@ -118,20 +122,28 @@ class SenderRnn(nn.Module):
             mask[start_index:] = True
             return mask
 
-        np_stop_symbol_tensor = np.apply_along_axis(fill_true, 1, np_stop_symbol_tensor)
+        ###Once we pack from the first true onward
+        np_stop_symbol_tensor = np.apply_along_axis(fill_true, 0, np_stop_symbol_tensor)
 
+        ### Get the masks
         mask = torch.tensor(np_stop_symbol_tensor).to(device)
 
-        m = symbol_tensor * ~mask + torch.ones(symbol_tensor.shape).to(device) * (self.n_symbols - 1) * mask
+        m = symbol_tensor * ~mask + torch.ones(symbol_tensor.shape).to(device) * (0) * mask
         m = m.long()
-        # For each message we then replace all symbols after the stop symbol to a stop symbol
 
+        ### We not create it unto the one hot encoding with the mask
         mask = mask.unsqueeze(dim=-1).repeat(1, 1, self.n_symbols)
 
-        one_hot = torch.nn.functional.one_hot(m)
+        one_hot = torch.nn.functional.one_hot(m, num_classes=self.n_symbols)
 
         msg = msg * ~mask + one_hot * mask
-        return msg.float()
+
+        # Make sure it is off the right type
+        msg = msg.float()
+
+        return msg
+
+
 
 
 class SenderFixed(nn.Module):
@@ -162,9 +174,7 @@ class SenderFixed(nn.Module):
         msg_logits = msg_logits.reshape(self.msg_len, len(x), self.n_symbols)
         msg = torch.nn.functional.gumbel_softmax(msg_logits, tau=self.tau, hard=True, dim=-1)
 
-        # ##Now we need to the stop words in the msg
-        #
-        # msg = self.add_stop_symbols(msg)
+
 
         return msg
 
@@ -219,6 +229,47 @@ class ReceiverFixed(nn.Module):
         return out, out_probs
 
 
+class ReceiverPredictor(nn.Module):
+    def __init__(self, feature_encoder, n_xs, n_symbols=3, msg_len=5):
+        '''
+        A sender that send fixed length messages
+        '''
+        super(ReceiverPredictor, self).__init__()
+        self.feature_encoder = feature_encoder
+        self.n_symbols = n_symbols
+        self.n_xs = n_xs
+
+        self.hidden_state_size = self.feature_encoder.hidden_state_size
+
+        self.to_prediction = nn.Sequential(
+
+            nn.ReLU(),
+            nn.Linear(self.hidden_state_size * (self.n_xs + 1), self.hidden_state_size),
+            nn.ReLU(),
+            nn.Linear(self.hidden_state_size, self.n_xs)
+        )
+
+    def forward(self, xs, hidden):
+        hidden_states = []
+        for x in xs:
+            hidden_state = self.feature_encoder(x)
+
+            hidden_states.append(hidden_state)
+
+        # Permute the msg to make sure that the batch is second
+
+        # Permute back
+
+        hidden_states.append(hidden)
+
+        hidden = torch.cat(hidden_states, dim=1)
+
+        out = self.to_prediction(hidden)
+
+        out_probs = torch.softmax(out, dim=-1)
+        return out, out_probs
+
+
 class PredictionRNN(nn.Module):
     def __init__(self, n_words, hidden_size):
         '''
@@ -230,21 +281,19 @@ class PredictionRNN(nn.Module):
         self.hidden_size = hidden_size
 
         self.embedding = nn.Linear(n_words, hidden_size)
-        self.gru = nn.LSTM(hidden_size, hidden_size)
+        self.rnn = nn.LSTM(hidden_size, hidden_size)
 
         self.predictions = nn.Linear(hidden_size, n_words)
         self.n_words = n_words
 
     def forward(self, input):
-        batch_size = input.shape[0]
-
+        batch_size = input.shape[1]
+        input = input.view(-1, self.n_words)
         embedded = self.embedding(input)
 
         embedded = embedded.reshape(-1, batch_size, self.hidden_size)
 
-        out, (hidden, cell_state) = self.gru(embedded)
-
-
+        out, (hidden, cell_state) = self.rnn(embedded)
 
         # Each hidden state put trough something to a small nn.
         predictions_logits = self.predictions(out.squeeze(dim=0))
