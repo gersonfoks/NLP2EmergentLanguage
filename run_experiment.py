@@ -59,7 +59,7 @@ loss_module_predictor = cross_entropy_loss_2
 
 
 if config["model_type"] == "shared":
-    print("using shared")
+
     signalling_game_model = SharedSignallingGameModel(sender, receiver_predictor, loss_module,
                                             loss_module_predictor=loss_module_predictor, hparams=config).to(device)
 else:

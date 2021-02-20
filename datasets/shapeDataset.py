@@ -13,7 +13,7 @@ class ShapeDataset(Dataset):
     Each image gets n_receiver-1 other images to be compared with.
     '''
 
-    def __init__(self, samples_per_epoch=10e4, picture_size=28, shape_size=8, transform=None):
+    def __init__(self, samples_per_epoch=10e4, picture_size=32, shape_size=8, transform=None):
         self.samples_per_epoch = int(samples_per_epoch)
 
         self.picture_size = picture_size
@@ -62,7 +62,7 @@ class ShapeGameDataset(Dataset):
     Each image gets n_receiver-1 other images to be compared with.
     '''
 
-    def __init__(self, samples_per_epoch=10e4, n_receiver=3, picture_size=28, shape_size=8, transform=None):
+    def __init__(self, samples_per_epoch=10e4, n_receiver=3, picture_size=32, shape_size=8, transform=None):
         self.samples_per_epoch = int(samples_per_epoch)
 
         self.n_receiver = n_receiver
