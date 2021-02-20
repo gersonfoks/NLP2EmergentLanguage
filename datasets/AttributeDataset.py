@@ -32,7 +32,7 @@ class AttributeDataset(Dataset):
         # First generate the pairs we want
         sender_items = []
         receiver_items = []
-        targets =  np.random.choice(self.n_classes, self.samples_per_epoch, replace=True)
+        targets = np.random.choice(self.n_classes, self.samples_per_epoch, replace=True)
         sender_items = [self.to_tensor(self.class_indexes[t]) for t in targets]
 
         return sender_items, targets
@@ -43,7 +43,7 @@ class AttributeDataset(Dataset):
     def __getitem__(self, idx):
         sender_item = self.sender_items[idx]
 
-        return sender_item,  self.targets[idx]
+        return sender_item, self.targets[idx]
 
     def to_tensor(self, attributes):
         attribute_tensor = torch.zeros(self.n_attributes * self.size_attributes)
@@ -110,3 +110,19 @@ class AttributeGameDataset(Dataset):
 
     def reset(self):
         self.sender_items, self.receiver_items, self.targets = self.generate_items()
+
+
+def get_attribute_game(n_attributes, size_attributes, samples_per_epoch_train=int(10e4),
+                       samples_per_epoch_test=int(10e3), batch_size=32):
+    '''
+    Get a dataloader for the signalling Game
+    '''
+
+    signalling_game_train = AttributeGameDataset(n_attributes, size_attributes,
+                                                 samples_per_epoch=samples_per_epoch_train)
+    signalling_game_test = AttributeGameDataset(n_attributes, size_attributes, samples_per_epoch=samples_per_epoch_test)
+
+    train_dataloader = DataLoader(signalling_game_train, shuffle=True, batch_size=batch_size, )
+    test_dataloader = DataLoader(signalling_game_test, shuffle=False, batch_size=batch_size, )
+
+    return train_dataloader, test_dataloader
