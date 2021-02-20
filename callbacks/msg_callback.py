@@ -136,8 +136,11 @@ class MeasureCallbacks(pl.Callback):
 
                 msg, out, out_probs, prediction_logits, prediction_probs = pl_module.forward(sender_imgs, receiver_imgs)
 
-                msg = torch.argmax(msg, dim=-1)
+                #Make batch first
+                msg = torch.argmax(msg, dim=-1).permute(1,0)
                 msgs.append(msg)
+
+
 
             msgs = torch.cat(msgs)
             logger = trainer.logger.experiment
