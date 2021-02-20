@@ -88,7 +88,7 @@ class AttributeGameDataset(Dataset):
             for i in range(len(self.permutations)):
                 if self.permutations[i] in remove_classes_train:
                     self.keep_classes.append(i)
-        print(self.keep_classes)
+        
 
         self.sender_items, self.receiver_items, self.targets = self.generate_items()
 
