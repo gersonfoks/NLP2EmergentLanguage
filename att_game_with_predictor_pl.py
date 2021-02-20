@@ -1,8 +1,8 @@
 import torch
 import pytorch_lightning as pl
 
-from attribute_game.pl_model import AttributeBaseLineModel
-from attribute_game.utils import get_sender, get_receiver
+from attribute_game.pl_model import AttributeBaseLineModel, AttributeModelWithPrediction
+from attribute_game.utils import get_sender, get_receiver, get_predictor
 from callbacks.msg_callback import MsgCallback, MsgFrequencyCallback, EntropyMeasure, MeasureCallbacks, \
     ResetDatasetCallback, DistinctSymbolMeasure
 
@@ -11,6 +11,7 @@ from callbacks.msg_callback import MsgCallback, MsgFrequencyCallback, EntropyMea
 
 ### Set to a number for faster prototyping
 from datasets.AttributeDataset import get_attribute_game
+from utils import cross_entropy_loss_2
 
 n_attributes = 2
 attributes_size = 2
@@ -25,28 +26,32 @@ samples_per_epoch_train = int(10e3)
 samples_per_epoch_test = int(10e3)
 max_epochs = 20
 
+hidden_size_predictor = 128
 
-
-msg_len = 1
+msg_len = 5
 n_symbols = 25
 
 fixed_size = False
 pretrain_n_epochs = 3
 
-hparams = {'learning_rate': 0.0001}
+hparams = {'learning_rate': 0.001, "predictor_loss_weight": 0.0001}
 
 sender = get_sender(n_attributes, attributes_size, n_symbols, msg_len, device, fixed_size=fixed_size,
                     pretrain_n_epochs=pretrain_n_epochs)
 receiver = get_receiver(n_attributes, attributes_size, n_receiver, n_symbols, msg_len, device, fixed_size=fixed_size,
                         pretrain_n_epochs=pretrain_n_epochs)
 
+predictor = get_predictor(n_symbols, hidden_size_predictor, device)
+
 train_dataloader, test_dataloader = get_attribute_game(n_attributes, attributes_size,
                                                        samples_per_epoch_train=samples_per_epoch_train,
                                                        samples_per_epoch_test=samples_per_epoch_test)
 
 loss_module = torch.nn.CrossEntropyLoss()
+loss_module_predictor = cross_entropy_loss_2
 
-signalling_game_model = AttributeBaseLineModel(sender, receiver, loss_module, hparams=hparams).to(device)
+signalling_game_model = AttributeModelWithPrediction(sender, receiver, loss_module, predictor, loss_module_predictor,
+                                                     hparams=hparams).to(device)
 
 to_sample_from = next(iter(test_dataloader))[:5]
 
@@ -58,7 +63,7 @@ freq_callback = MsgFrequencyCallback(to_sample_from)
 symbol_entropy = EntropyMeasure('symbol entropy')
 bi_gram_entropy = EntropyMeasure('bigram entropy', n_gram=2)
 distinct_measure = DistinctSymbolMeasure('Distinct Symbols')
-measure_callbacks = MeasureCallbacks(test_dataloader, measures=[symbol_entropy, bi_gram_entropy])
+measure_callbacks = MeasureCallbacks(test_dataloader, measures=[symbol_entropy, bi_gram_entropy, distinct_measure])
 
 reset_trainer = ResetDatasetCallback(train_dataloader.dataset)
 
