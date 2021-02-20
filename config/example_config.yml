@@ -33,5 +33,10 @@ fixed_size: True
 predictor_loss_weight: 0
 hidden_size_predictor: 128
 
+#added by Pieter
+n_receiver: 3
+n_attributes: 2
+attributes_size: 2
+
 
 

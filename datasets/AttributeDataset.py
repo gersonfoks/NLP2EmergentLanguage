@@ -60,7 +60,7 @@ class AttributeGameDataset(Dataset):
     The dataset for a simple attribute passing game.
     '''
 
-    def __init__(self, n_attributes, size_attributes, n_receiver=3, samples_per_epoch=int(10e4), transform=None, n_remove_classes=4, train=True):
+    def __init__(self, n_attributes, size_attributes, n_receiver=3, samples_per_epoch=int(10e4), transform=None, n_remove_classes=0, train=True):
         self.samples_per_epoch = samples_per_epoch
         self.n_receiver = n_receiver
         self.transform = transform
