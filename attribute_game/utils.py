@@ -1,7 +1,8 @@
 import torch
 from torch.utils.data import DataLoader
 
-from attribute_game.models import SenderFixed, SenderRnn, FeatureEncoder, ReceiverFixed, PredictionRNN
+from attribute_game.models import SenderFixed, SenderRnn, FeatureEncoder, ReceiverFixed, PredictionRNN, \
+    ReceiverPredictor
 from attribute_game.rnn_receiver import ReceiverLSTM
 from datasets.AttributeDataset import AttributeDataset
 
@@ -78,3 +79,14 @@ def get_receiver(n_attributes, attributes_size, n_receiver, n_symbols, msg_len, 
 
 def get_predictor(n_symbols, hidden_size, device):
     return PredictionRNN(n_symbols, hidden_size).to(device)
+
+
+def get_receiver_predictor(n_attributes, attributes_size, n_receiver, n_symbols, msg_len, device, fixed_size=True,
+                 pretrain_n_epochs=3, encoder_hidden_state_size=128):
+    '''
+    Get the receiver predictor
+    '''
+
+    encoder = get_pretrained_feature_encoder(n_attributes, attributes_size,  n_epochs=pretrain_n_epochs, hidden_state_size=encoder_hidden_state_size)
+
+    return ReceiverPredictor(encoder, n_receiver, n_symbols=n_symbols, msg_len=msg_len, ).to(device)
