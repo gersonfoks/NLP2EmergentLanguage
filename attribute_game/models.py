@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import numpy as np
+from torch.nn.utils.rnn import pack_padded_sequence
 
 
 class FeatureEncoder(nn.Module):
@@ -84,23 +85,26 @@ class SenderRnn(nn.Module):
 
             result.append(symbol)
 
-        msg = torch.cat(result, dim=0)
+        msg = torch.cat(result)
 
-        # ##Now we need to the stop words in the msg
-        #
-        # msg = self.add_stop_symbols(msg)
+
+        msg = self.add_stop_symbols(msg)
+
+
 
         return msg
 
     def add_stop_symbols(self, msg):
 
-        ##TODO: fix this bad programming
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+        ### Get the symbols
         symbol_tensor = torch.argmax(msg, dim=-1)
 
-        stop_symbol_tensor = symbol_tensor == self.n_symbols - 1
+        ### Get tensor which has true whenever there is a stop symbol
+        stop_symbol_tensor = symbol_tensor == 0
 
+        ### Move it to numpy
         np_stop_symbol_tensor = stop_symbol_tensor.cpu().numpy()
 
         def fill_true(mask, ):
@@ -118,20 +122,28 @@ class SenderRnn(nn.Module):
             mask[start_index:] = True
             return mask
 
-        np_stop_symbol_tensor = np.apply_along_axis(fill_true, 1, np_stop_symbol_tensor)
+        ###Once we pack from the first true onward
+        np_stop_symbol_tensor = np.apply_along_axis(fill_true, 0, np_stop_symbol_tensor)
 
+        ### Get the masks
         mask = torch.tensor(np_stop_symbol_tensor).to(device)
 
-        m = symbol_tensor * ~mask + torch.ones(symbol_tensor.shape).to(device) * (self.n_symbols - 1) * mask
+        m = symbol_tensor * ~mask + torch.ones(symbol_tensor.shape).to(device) * (0) * mask
         m = m.long()
-        # For each message we then replace all symbols after the stop symbol to a stop symbol
 
+        ### We not create it unto the one hot encoding with the mask
         mask = mask.unsqueeze(dim=-1).repeat(1, 1, self.n_symbols)
 
-        one_hot = torch.nn.functional.one_hot(m)
+        one_hot = torch.nn.functional.one_hot(m, num_classes=self.n_symbols)
 
         msg = msg * ~mask + one_hot * mask
-        return msg.float()
+
+        # Make sure it is off the right type
+        msg = msg.float()
+
+        return msg
+
+
 
 
 class SenderFixed(nn.Module):
@@ -162,9 +174,7 @@ class SenderFixed(nn.Module):
         msg_logits = msg_logits.reshape(self.msg_len, len(x), self.n_symbols)
         msg = torch.nn.functional.gumbel_softmax(msg_logits, tau=self.tau, hard=True, dim=-1)
 
-        # ##Now we need to the stop words in the msg
-        #
-        # msg = self.add_stop_symbols(msg)
+
 
         return msg
 
@@ -252,7 +262,6 @@ class ReceiverPredictor(nn.Module):
 
         hidden_states.append(hidden)
 
-
         hidden = torch.cat(hidden_states, dim=1)
 
         out = self.to_prediction(hidden)
@@ -278,7 +287,6 @@ class PredictionRNN(nn.Module):
         self.n_words = n_words
 
     def forward(self, input):
-
         batch_size = input.shape[1]
         input = input.view(-1, self.n_words)
         embedded = self.embedding(input)
@@ -291,7 +299,6 @@ class PredictionRNN(nn.Module):
         predictions_logits = self.predictions(out.squeeze(dim=0))
 
         out_probs = torch.softmax(predictions_logits, dim=-1)
-
 
         return predictions_logits, out_probs, hidden.squeeze(dim=0)
 

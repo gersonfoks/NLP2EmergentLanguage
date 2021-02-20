@@ -2,7 +2,7 @@ from itertools import permutations, product
 
 import torch
 from torch.utils.data import Dataset, DataLoader
-from torchvision.datasets import MNIST, FashionMNIST, CIFAR10
+
 import numpy as np
 
 

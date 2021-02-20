@@ -18,8 +18,7 @@ attributes_size = 2
 
 n_receiver = 3
 
-n_symbols = 25
-msg_len = 10
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 samples_per_epoch_train = int(10e3)
