@@ -1,24 +1,57 @@
 import pytorch_lightning as pl
 import torch
+import numpy as np
+from torch.nn.utils.rnn import pack_padded_sequence
 
+
+def pack(msg, msg_len):
+    def find_first(row, ):
+
+        r = np.where(row == 0)
+        if len(r[0]) > 0:
+            return r[0][0] + 1
+        else:
+            return msg_len
+
+    ### Get the symbols
+    symbol_tensor = torch.argmax(msg, dim=-1)
+
+    ### Get tensor which has true whenever there is a stop symbol
+    stop_symbol_tensor = symbol_tensor == 0
+
+    symbol_np = symbol_tensor.permute(1, 0).cpu().numpy()
+    lengths = []
+    for row in symbol_np:
+        lengths.append(find_first(row))
+
+    lengths = np.array(lengths)
+
+    msg_packed = pack_padded_sequence(msg, lengths, enforce_sorted=False)
+
+    return msg_packed
 
 class AttributeBaseLineModel(pl.LightningModule):
     def __init__(self, sender, receiver, loss_module,
-                 hparams=None):
+                 hparams=None, pack_message=True):
         super().__init__()
         self.sender = sender
         self.receiver = receiver
 
         self.loss_module = loss_module
-
+        self.pack_message = pack_message
+        self.msg_len = sender.msg_len
         self.hparams = hparams
 
     def forward(self, sender_img, receiver_choices):
         msg = self.sender(sender_img)
+        if self.pack_message:
+            msg_packed = pack(msg , self.msg_len )
+            out, out_probs = self.receiver(receiver_choices, msg_packed)
+        else:
+            msg_packed = None
+            out, out_probs = self.receiver(receiver_choices, msg)
 
-        out, out_probs = self.receiver(receiver_choices, msg)
-
-        return msg, out, out_probs, None, None
+        return msg, msg_packed, out, out_probs, None, None
 
     def training_step(self, batch, batch_idx):
         batch_size = len(batch[0])
@@ -27,7 +60,7 @@ class AttributeBaseLineModel(pl.LightningModule):
         receiver_imgs = batch[1]
         target = batch[2].to(self.device)
 
-        msg, out, out_probs, _, _ = self.forward(sender_img, receiver_imgs)
+        msg, msg_packed, out, out_probs, _, _ = self.forward(sender_img, receiver_imgs)
 
         loss = self.loss_module(out_probs, target)
 

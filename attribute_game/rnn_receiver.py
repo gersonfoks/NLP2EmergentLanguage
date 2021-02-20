@@ -101,7 +101,7 @@ class ReceiverLSTM(nn.Module):
 
     def forward(self, xs, msg):
 
-        batch_size = msg.shape[1]
+
         hidden_states = []
         for x in xs:
             hidden_state = self.feature_encoder(x)
