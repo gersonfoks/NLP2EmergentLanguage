@@ -119,7 +119,7 @@ class SenderRnn(nn.Module):
             mask[start_index] = False
             if start_index < len(mask):
                 start_index += 1
-            mask[start_index:] = True
+            mask[start_index + 1:] = True
             return mask
 
         ###Once we pack from the first true onward
@@ -128,7 +128,7 @@ class SenderRnn(nn.Module):
         ### Get the masks
         mask = torch.tensor(np_stop_symbol_tensor).to(device)
 
-        m = symbol_tensor * ~mask + torch.ones(symbol_tensor.shape).to(device) * (0) * mask
+        m = symbol_tensor * ~mask + torch.ones(symbol_tensor.shape).to(device) * (self.n_symbols - 1) * mask
         m = m.long()
 
         ### We not create it unto the one hot encoding with the mask

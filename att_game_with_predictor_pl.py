@@ -6,8 +6,6 @@ from attribute_game.utils import get_sender, get_receiver, get_predictor
 from callbacks.msg_callback import MsgCallback, MsgFrequencyCallback, EntropyMeasure, MeasureCallbacks, \
     ResetDatasetCallback, DistinctSymbolMeasure
 
-###Config (Move to some file or something for easy training and experimentiation
-
 
 ### Set to a number for faster prototyping
 from datasets.AttributeDataset import get_attribute_game
@@ -30,7 +28,9 @@ hidden_size_predictor = 128
 msg_len = 5
 n_symbols = 25
 
-fixed_size = False
+fixed_size = True
+pack_message = not fixed_size
+
 pretrain_n_epochs = 3
 
 hparams = {'learning_rate': 0.001, "predictor_loss_weight": 0.0001}
@@ -50,7 +50,7 @@ loss_module = torch.nn.CrossEntropyLoss()
 loss_module_predictor = cross_entropy_loss_2
 
 signalling_game_model = AttributeModelWithPrediction(sender, receiver, loss_module, predictor, loss_module_predictor,
-                                                     hparams=hparams).to(device)
+                                                     hparams=hparams, pack_message=pack_message).to(device)
 
 to_sample_from = next(iter(test_dataloader))[:5]
 

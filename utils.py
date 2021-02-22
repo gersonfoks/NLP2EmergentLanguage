@@ -166,16 +166,16 @@ def cross_entropy_loss(predictions, targets):
     return loss
 
 
-def cross_entropy_loss_2(predictions, targets):
+def cross_entropy_loss_2(predictions, targets, ignore_index=None):
     '''
     Custom version of the cross entropy loss. This one is used to make sure that the gradients are
     properly calculated. If we use the standard one, there is not way to
     '''
-    loss_module = torch.nn.CrossEntropyLoss()
+
 
     targets = torch.argmax(targets, dim=-1)
 
-    loss = loss_module(predictions, targets)
+    loss = torch.nn.functional.cross_entropy(predictions, targets, ignore_index=ignore_index)
     return loss
 
 

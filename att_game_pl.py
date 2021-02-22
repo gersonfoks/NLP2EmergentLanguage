@@ -18,7 +18,7 @@ attributes_size = 2
 n_receiver = 3
 
 n_symbols = 25
-msg_len = 5
+msg_len = 10
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 samples_per_epoch_train = int(10e3)
@@ -29,12 +29,12 @@ max_epochs = 20
 
 
 
-fixed_size = False
-pack_message = True
+fixed_size = True
+pack_message = not fixed_size
 
 pretrain_n_epochs = 3
 
-hparams = {'learning_rate': 0.0001}
+hparams = {'learning_rate': 0.01}
 
 sender = get_sender(n_attributes, attributes_size, n_symbols, msg_len, device, fixed_size=fixed_size,
                     pretrain_n_epochs=pretrain_n_epochs)
@@ -59,7 +59,7 @@ freq_callback = MsgFrequencyCallback(to_sample_from)
 symbol_entropy = EntropyMeasure('symbol entropy')
 bi_gram_entropy = EntropyMeasure('bigram entropy', n_gram=2)
 distinct_measure = DistinctSymbolMeasure('Distinct Symbols')
-measure_callbacks = MeasureCallbacks(test_dataloader, measures=[symbol_entropy, bi_gram_entropy])
+measure_callbacks = MeasureCallbacks(test_dataloader, measures=[symbol_entropy, bi_gram_entropy, distinct_measure])
 
 reset_trainer = ResetDatasetCallback(train_dataloader.dataset)
 

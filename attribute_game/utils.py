@@ -1,10 +1,13 @@
 import torch
+from torch.nn.utils.rnn import pack_padded_sequence
 from torch.utils.data import DataLoader
 
 from attribute_game.models import SenderFixed, SenderRnn, FeatureEncoder, ReceiverFixed, PredictionRNN, \
     ReceiverPredictor
 from attribute_game.rnn_receiver import ReceiverLSTM
 from datasets.AttributeDataset import AttributeDataset
+
+import numpy as np
 
 
 def get_pretrained_feature_encoder(n_attributes, size_attributes, n_epochs=3, hidden_state_size=128):
@@ -53,7 +56,8 @@ def get_sender(n_attributes, attributes_size, n_symbols, msg_len, device, fixed_
     Get the sender model
     '''
 
-    encoder = get_pretrained_feature_encoder(n_attributes, attributes_size, n_epochs=pretrain_n_epochs, hidden_state_size=encoder_hidden_state_size )
+    encoder = get_pretrained_feature_encoder(n_attributes, attributes_size, n_epochs=pretrain_n_epochs,
+                                             hidden_state_size=encoder_hidden_state_size)
     if fixed_size:
         sender = SenderFixed(encoder, n_symbols=n_symbols, msg_len=msg_len,
                              ).to(device)
@@ -68,7 +72,8 @@ def get_receiver(n_attributes, attributes_size, n_receiver, n_symbols, msg_len, 
     Get the sender model
     '''
 
-    encoder = get_pretrained_feature_encoder(n_attributes, attributes_size,  n_epochs=pretrain_n_epochs, hidden_state_size=encoder_hidden_state_size)
+    encoder = get_pretrained_feature_encoder(n_attributes, attributes_size, n_epochs=pretrain_n_epochs,
+                                             hidden_state_size=encoder_hidden_state_size)
     if fixed_size:
         receiver = ReceiverFixed(encoder, n_receiver, n_symbols=n_symbols, msg_len=msg_len,
                                  ).to(device)
@@ -82,11 +87,41 @@ def get_predictor(n_symbols, hidden_size, device):
 
 
 def get_receiver_predictor(n_attributes, attributes_size, n_receiver, n_symbols, msg_len, device, fixed_size=True,
-                 pretrain_n_epochs=3, encoder_hidden_state_size=128):
+                           pretrain_n_epochs=3, encoder_hidden_state_size=128):
     '''
     Get the receiver predictor
     '''
 
-    encoder = get_pretrained_feature_encoder(n_attributes, attributes_size,  n_epochs=pretrain_n_epochs, hidden_state_size=encoder_hidden_state_size)
+    encoder = get_pretrained_feature_encoder(n_attributes, attributes_size, n_epochs=pretrain_n_epochs,
+                                             hidden_state_size=encoder_hidden_state_size)
 
     return ReceiverPredictor(encoder, n_receiver, n_symbols=n_symbols, msg_len=msg_len, ).to(device)
+
+
+def pack(msg, msg_len):
+    lengths = get_lengths(msg, msg_len)
+
+    msg_packed = pack_padded_sequence(msg, lengths, enforce_sorted=False)
+
+    return msg_packed
+
+
+def get_lengths(msg, msg_len):
+    def find_first(row, ):
+
+        r = np.where(row == 0)
+        if len(r[0]) > 0:
+            return r[0][0] + 1
+        else:
+            return msg_len
+
+    ### Get the symbols
+    symbol_tensor = torch.argmax(msg, dim=-1)
+
+    symbol_np = symbol_tensor.permute(1, 0).cpu().numpy()
+    lengths = []
+    for row in symbol_np:
+        lengths.append(find_first(row))
+
+    lengths = np.array(lengths)
+    return lengths

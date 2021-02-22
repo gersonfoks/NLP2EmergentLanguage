@@ -3,36 +3,12 @@ import torch
 import numpy as np
 from torch.nn.utils.rnn import pack_padded_sequence
 
+from attribute_game.utils import pack
 
-def pack(msg, msg_len):
-    def find_first(row, ):
-
-        r = np.where(row == 0)
-        if len(r[0]) > 0:
-            return r[0][0] + 1
-        else:
-            return msg_len
-
-    ### Get the symbols
-    symbol_tensor = torch.argmax(msg, dim=-1)
-
-    ### Get tensor which has true whenever there is a stop symbol
-    stop_symbol_tensor = symbol_tensor == 0
-
-    symbol_np = symbol_tensor.permute(1, 0).cpu().numpy()
-    lengths = []
-    for row in symbol_np:
-        lengths.append(find_first(row))
-
-    lengths = np.array(lengths)
-
-    msg_packed = pack_padded_sequence(msg, lengths, enforce_sorted=False)
-
-    return msg_packed
 
 class AttributeBaseLineModel(pl.LightningModule):
     def __init__(self, sender, receiver, loss_module,
-                 hparams=None, pack_message=True):
+                 hparams=None, pack_message=False):
         super().__init__()
         self.sender = sender
         self.receiver = receiver
@@ -45,7 +21,7 @@ class AttributeBaseLineModel(pl.LightningModule):
     def forward(self, sender_img, receiver_choices):
         msg = self.sender(sender_img)
         if self.pack_message:
-            msg_packed = pack(msg , self.msg_len )
+            msg_packed = pack(msg, self.msg_len)
             out, out_probs = self.receiver(receiver_choices, msg_packed)
         else:
             msg_packed = None
@@ -85,7 +61,7 @@ class AttributeBaseLineModel(pl.LightningModule):
 
 class AttributeModelWithPrediction(pl.LightningModule):
     def __init__(self, sender, receiver, loss_module, predictor, predictor_loss_module,
-                 hparams=None):
+                 hparams=None, pack_message=True):
         super().__init__()
         self.sender = sender
         self.receiver = receiver
@@ -93,7 +69,7 @@ class AttributeModelWithPrediction(pl.LightningModule):
         self.loss_module_predictor = predictor_loss_module
 
         self.loss_module = loss_module
-
+        self.pack_message = pack_message
         self.hparams = hparams
 
     def forward(self, sender_img, receiver_choices):
@@ -102,18 +78,21 @@ class AttributeModelWithPrediction(pl.LightningModule):
         start_symbols = torch.zeros(1, len(sender_img), self.sender.n_symbols).to(self.device)
 
         msgs = torch.cat([start_symbols, msg], dim=0)
-        msg_in = msgs
-        prediction_logits, prediction_probs, hidden = self.predictor(msg_in)
+
+        prediction_logits, prediction_probs, hidden = self.predictor(msgs)
 
         prediction_logits = prediction_logits[:-1, :, :]
         prediction_probs = prediction_probs[:-1, :, :]
 
 
+        packed_msg = None
+        if self.pack_message:
+            packed_msg = pack(msg, self.sender.msg_len)
+            out, out_probs = self.receiver(receiver_choices, packed_msg)
+        else:
+            out, out_probs = self.receiver(receiver_choices, msg)
 
-
-        out, out_probs = self.receiver(receiver_choices, msg)
-
-        return msg, out, out_probs, prediction_logits, prediction_probs
+        return msg, packed_msg, out, out_probs, prediction_logits, prediction_probs
 
     def training_step(self, batch, batch_idx):
         batch_size = len(batch[0])
@@ -122,16 +101,15 @@ class AttributeModelWithPrediction(pl.LightningModule):
         receiver_imgs = batch[1]
         target = batch[2].to(self.device)
 
-        msg, out, out_probs, prediction_logits, prediction_probs = self.forward(sender_img, receiver_imgs)
-
-
+        msg, packed_msg, out, out_probs, prediction_logits, prediction_probs = self.forward(sender_img, receiver_imgs)
 
         ### Get loss of the predictor
         prediction_squeezed = prediction_logits.reshape(-1, self.sender.n_symbols)
         prediction_probs = prediction_probs.reshape(-1, self.sender.n_symbols)
         msg_target = msg.reshape(-1, self.sender.n_symbols)
 
-        loss_predictor = self.loss_module_predictor(prediction_squeezed, msg_target)
+        loss_predictor = self.loss_module_predictor(prediction_squeezed, msg_target,
+                                                    ignore_index=self.sender.n_symbols - 1)
         indices = torch.argmax(msg_target, dim=-1)
         accuracyPredictions = torch.argmax(prediction_probs, dim=-1)
 
@@ -155,7 +133,8 @@ class AttributeModelWithPrediction(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        parameters = list(self.sender.parameters()) + list(self.receiver.parameters()) + list(self.predictor.parameters())
+        parameters = list(self.sender.parameters()) + list(self.receiver.parameters()) + list(
+            self.predictor.parameters())
 
         optimizer = torch.optim.Adam(
             parameters,
@@ -181,6 +160,8 @@ class AttributeModelMerged(pl.LightningModule):
 
         start_symbols = torch.zeros(1, len(sender_img), self.sender.n_symbols).to(self.device)
 
+        packed_msg = pack(msg, self.sender.msg_len)
+
         msgs = torch.cat([start_symbols, msg], dim=0)
         msg_in = msgs
         prediction_logits, prediction_probs, hidden = self.predictor(msg_in)
@@ -191,7 +172,7 @@ class AttributeModelMerged(pl.LightningModule):
         last_hidden = hidden
         out, out_probs = self.receiver(receiver_choices, last_hidden)
 
-        return msg, out, out_probs, prediction_logits, prediction_probs
+        return msg, packed_msg, out, out_probs, prediction_logits, prediction_probs
 
     def training_step(self, batch, batch_idx):
         batch_size = len(batch[0])
@@ -202,14 +183,10 @@ class AttributeModelMerged(pl.LightningModule):
 
         msg, out, out_probs, prediction_logits, prediction_probs = self.forward(sender_img, receiver_imgs)
 
-
-
         ### Get loss of the predictor
         prediction_squeezed = prediction_logits.reshape(-1, self.sender.n_symbols)
         prediction_probs = prediction_probs.reshape(-1, self.sender.n_symbols)
         msg_target = msg.reshape(-1, self.sender.n_symbols)
-
-
 
         loss_predictor = self.loss_module_predictor(prediction_squeezed, msg_target)
         indices = torch.argmax(msg_target, dim=-1)
@@ -235,7 +212,8 @@ class AttributeModelMerged(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        parameters = list(self.sender.parameters()) + list(self.receiver.parameters()) + list(self.predictor.parameters())
+        parameters = list(self.sender.parameters()) + list(self.receiver.parameters()) + list(
+            self.predictor.parameters())
 
         optimizer = torch.optim.Adam(
             parameters,
