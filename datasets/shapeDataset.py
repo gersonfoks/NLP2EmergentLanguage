@@ -1,10 +1,9 @@
-from itertools import permutations, product
+from itertools import product
 
-from torch.utils.data import Dataset, DataLoader
-from torchvision.datasets import MNIST, FashionMNIST, CIFAR10
+from torch.utils.data import Dataset
 import numpy as np
 
-from gen_shapes_data import COLORS, SHAPES, make_img_one_shape
+from datasets.gen_shapes_data import COLORS, SHAPES, make_img_one_shape
 
 
 class ShapeDataset(Dataset):

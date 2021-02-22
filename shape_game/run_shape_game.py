@@ -3,9 +3,8 @@ import pytorch_lightning as pl
 
 from callbacks.msg_callback import MsgCallback, MsgFrequencyCallback, EntropyMeasure, MeasureCallbacks, \
     ResetDatasetCallback
-from models.pl_model import SignallingGameModel
-from utils import get_sender, get_receiver, cross_entropy_loss, \
-    get_shape_signalling_game, get_predictor, cross_entropy_loss_2
+from shape_game.models import SignallingGameModel
+from utils import get_sender, get_receiver, get_shape_signalling_game, get_predictor, cross_entropy_loss_2
 
 ###Config (Move to some file or something for easy training and experimentiation
 
@@ -53,7 +52,7 @@ measure_callbacks = MeasureCallbacks(test_dataloader, measures=[symbol_entropy, 
 reset_trainer = ResetDatasetCallback(train_dataloader.dataset)
 
 
-trainer = pl.Trainer(default_root_dir='logs',
+trainer = pl.Trainer(default_root_dir='../logs',
                      checkpoint_callback=False,
                      # checkpoint_callback=ModelCheckpoint(save_weights_only=True, mode="min", monitor="val_loss"),
                      gpus=1 if torch.cuda.is_available() else 0,

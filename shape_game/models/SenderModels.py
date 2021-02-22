@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import numpy as np
 
-from models.VisualModels import HiddenStateModel
+from shape_game.models.VisualModels import HiddenStateModel
 
 
 class SenderModelFixedLength(nn.Module):

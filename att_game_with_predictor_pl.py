@@ -6,16 +6,15 @@ from attribute_game.utils import get_sender, get_receiver, get_predictor
 from callbacks.msg_callback import MsgCallback, MsgFrequencyCallback, EntropyMeasure, MeasureCallbacks, \
     ResetDatasetCallback, DistinctSymbolMeasure
 
-
 ### Set to a number for faster prototyping
 from datasets.AttributeDataset import get_attribute_game
 from utils import cross_entropy_loss_2
 
-n_attributes = 2
-attributes_size = 2
+batch_size = 32
+n_attributes = 4
+attributes_size = 3
 
-n_receiver = 3
-
+n_receiver = 5
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -28,12 +27,12 @@ hidden_size_predictor = 128
 msg_len = 5
 n_symbols = 25
 
-fixed_size = True
+fixed_size = False
 pack_message = not fixed_size
 
 pretrain_n_epochs = 3
 
-hparams = {'learning_rate': 0.001, "predictor_loss_weight": 0.0001}
+hparams = {'learning_rate': 0.001, "predictor_loss_weight": 0.01}
 
 sender = get_sender(n_attributes, attributes_size, n_symbols, msg_len, device, fixed_size=fixed_size,
                     pretrain_n_epochs=pretrain_n_epochs)
@@ -42,9 +41,9 @@ receiver = get_receiver(n_attributes, attributes_size, n_receiver, n_symbols, ms
 
 predictor = get_predictor(n_symbols, hidden_size_predictor, device)
 
-train_dataloader, test_dataloader = get_attribute_game(n_attributes, attributes_size,
+train_dataloader, test_dataloader = get_attribute_game(n_attributes, attributes_size,n_receiver=n_receiver,
                                                        samples_per_epoch_train=samples_per_epoch_train,
-                                                       samples_per_epoch_test=samples_per_epoch_test)
+                                                       samples_per_epoch_test=samples_per_epoch_test, batch_size=batch_size)
 
 loss_module = torch.nn.CrossEntropyLoss()
 loss_module_predictor = cross_entropy_loss_2
@@ -76,4 +75,7 @@ trainer = pl.Trainer(default_root_dir='logs',
                      progress_bar_refresh_rate=1)
 trainer.logger._default_hp_metric = None  # Optional logging argument that we don't need
 
-trainer.fit(signalling_game_model, train_dataloader)
+trainer.fit(signalling_game_model, train_dataloader, train_dataloader)
+
+
+

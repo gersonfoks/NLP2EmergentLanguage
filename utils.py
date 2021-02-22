@@ -6,11 +6,11 @@ from torchvision.transforms import transforms
 
 from datasets.shapeDataset import ShapeDataset, ShapeGameDataset
 from datasets.signalling_game import SignallingGameDataset
-from models.PredictorModel import PredictionRNN
-from models.ReceiverModels import ReceiverModuleFixedLength
-from models.SenderModels import SenderModelFixedLength, SenderRnn
-from models.VisualModels import VisualModel, HiddenStateModel
-from models.models import ReceiverCombined
+from shape_game.models.PredictorModel import PredictionRNN
+from shape_game.models.ReceiverModels import ReceiverModuleFixedLength
+from shape_game.models.SenderModels import SenderModelFixedLength, SenderRnn
+from shape_game.models.VisualModels import VisualModel, HiddenStateModel
+from shape_game.models.models import ReceiverCombined
 
 
 def train_hidden_state_model(hidden_state_model, device, train_dataloader, n_epochs):

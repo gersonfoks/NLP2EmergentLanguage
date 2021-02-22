@@ -1,9 +1,8 @@
 import torch
 from torch.utils.data import DataLoader
-from torchvision.transforms import transforms
 
 from datasets.MsgDataset import MarkovProcess, MsgDataset
-from models.models import PredictionRNN
+from shape_game.models.models import PredictionRNN
 
 simple_transitions = {
     0: {1: 0.5, 2: 0.5},

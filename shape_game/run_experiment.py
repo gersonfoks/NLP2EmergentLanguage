@@ -6,7 +6,8 @@ import yaml
 
 from callbacks.msg_callback import MsgCallback, MsgFrequencyCallback, EntropyMeasure, MeasureCallbacks, \
     ResetDatasetCallback, MsgLength, DistinctSymbolMeasure
-from models.pl_model import SignallingGameModel, SharedSignallingGameModel
+from shape_game.models.pl_model import SharedSignallingGameModel, SignallingGameModel
+
 from utils import get_sender, get_receiver, get_shape_signalling_game, get_predictor, cross_entropy_loss_2, \
     get_receiver_predictor_combined
 
@@ -83,7 +84,7 @@ measure_callbacks = MeasureCallbacks(test_dataloader,
 
 reset_trainer = ResetDatasetCallback(train_dataloader.dataset)
 
-trainer = pl.Trainer(default_root_dir='logs',
+trainer = pl.Trainer(default_root_dir='../logs',
                      checkpoint_callback=False,
                      # checkpoint_callback=ModelCheckpoint(save_weights_only=True, mode="min", monitor="val_loss"),
                      gpus=1 if torch.cuda.is_available() else 0,

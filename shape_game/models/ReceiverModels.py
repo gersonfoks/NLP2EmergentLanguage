@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from models.VisualModels import HiddenStateModel
+from shape_game.models.VisualModels import HiddenStateModel
 
 
 class ReceiverModuleFixedLength(nn.Module):
