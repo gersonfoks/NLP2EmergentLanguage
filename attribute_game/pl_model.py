@@ -50,6 +50,35 @@ class AttributeBaseLineModel(pl.LightningModule):
 
         return loss
 
+    @torch.no_grad()
+    def validation_step(self, batch, batch_idx):
+
+        self.sender.eval()  # if we do not do this it raises issues for batch normalization
+        self.receiver.eval()
+
+        batch_size = len(batch[0])
+
+        sender_img = batch[0].to(self.device)
+        receiver_imgs = batch[1]
+        target = batch[2].to(self.device)
+
+
+
+        msg, msg_packed, out, out_probs, _, _ = self.forward(sender_img, receiver_imgs)
+
+        loss = self.loss_module(out_probs, target)
+
+        predicted_indices = torch.argmax(out_probs, dim=-1)
+
+        correct = (predicted_indices == target).sum().item() / batch_size
+
+
+        self.log("val_loss_receiver", loss, on_step=True, on_epoch=True)
+        self.log("val_total_loss", loss, on_step=True, on_epoch=True)
+        self.log("val_accuracy", correct, on_step=True, on_epoch=True)
+
+        self.sender.train()  # make sure to set it back to training
+        self.receiver.train()
     def configure_optimizers(self):
         parameters = list(self.sender.parameters()) + list(self.receiver.parameters())
 
@@ -83,7 +112,6 @@ class AttributeModelWithPrediction(pl.LightningModule):
 
         prediction_logits = prediction_logits[:-1, :, :]
         prediction_probs = prediction_probs[:-1, :, :]
-
 
         packed_msg = None
         if self.pack_message:
@@ -131,6 +159,59 @@ class AttributeModelWithPrediction(pl.LightningModule):
         self.log("accuracy", correct, on_step=True, on_epoch=True)
 
         return loss
+
+
+
+    @torch.no_grad()
+    def validation_step(self, batch, batch_idx):
+
+        self.sender.eval()  # if we do not do this it raises issues for batch normalization
+        self.receiver.eval()
+        self.predictor.eval()
+
+        batch_size = len(batch[0])
+
+        sender_img = batch[0].to(self.device)
+        receiver_imgs = batch[1]
+        target = batch[2].to(self.device)
+
+
+
+
+        msg, msg_packed, out, out_probs, prediction_logits, prediction_probs = self.forward(sender_img, receiver_imgs)
+
+        ### Get loss of the predictor
+        prediction_squeezed = prediction_logits.reshape(-1, self.sender.n_symbols)
+        prediction_probs = prediction_probs.reshape(-1, self.sender.n_symbols)
+        msg_target = msg.reshape(-1, self.sender.n_symbols)
+
+        loss_predictor = self.loss_module_predictor(prediction_squeezed, msg_target,
+                                                    ignore_index=self.sender.n_symbols - 1)
+        indices = torch.argmax(msg_target, dim=-1)
+        accuracyPredictions = torch.argmax(prediction_probs, dim=-1)
+
+        correct = (accuracyPredictions == indices).sum().item()
+        predictor_accuracy = correct / len(indices)
+        self.log("val accuracy predictor", predictor_accuracy, on_step=True, on_epoch=True)
+
+        loss_receiver = self.loss_module(out_probs, target)
+        loss = loss_receiver + self.hparams["predictor_loss_weight"] * loss_predictor
+
+        predicted_indices = torch.argmax(out_probs, dim=-1)
+
+        correct = (predicted_indices == target).sum().item() / batch_size
+
+
+
+        self.log("val_loss_predictor", loss_predictor, on_step=True, on_epoch=True)
+        self.log("val_loss_receiver", loss_receiver, on_step=True, on_epoch=True)
+        self.log("val_total_loss", loss, on_step=True, on_epoch=True)
+        self.log("val_accuracy", correct, on_step=True, on_epoch=True)
+
+        self.sender.train()  # make sure to set it back to training
+        self.receiver.train()
+        self.predictor.train()
+
 
     def configure_optimizers(self):
         parameters = list(self.sender.parameters()) + list(self.receiver.parameters()) + list(

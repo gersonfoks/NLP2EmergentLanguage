@@ -128,14 +128,14 @@ class AttributeGameDataset(Dataset):
 
 
 def get_attribute_game(n_attributes, size_attributes, samples_per_epoch_train=int(10e4),
-                       samples_per_epoch_test=int(10e3), batch_size=32):
+                       samples_per_epoch_test=int(10e3), batch_size=32, n_receiver=3):
     '''
     Get a dataloader for the signalling Game
     '''
 
-    signalling_game_train = AttributeGameDataset(n_attributes, size_attributes,
+    signalling_game_train = AttributeGameDataset(n_attributes, size_attributes, n_receiver=n_receiver,
                                                  samples_per_epoch=samples_per_epoch_train, )
-    signalling_game_test = AttributeGameDataset(n_attributes, size_attributes, samples_per_epoch=samples_per_epoch_test)
+    signalling_game_test = AttributeGameDataset(n_attributes, size_attributes, n_receiver=n_receiver, samples_per_epoch=samples_per_epoch_test)
 
     train_dataloader = DataLoader(signalling_game_train, shuffle=True, batch_size=batch_size, )
     test_dataloader = DataLoader(signalling_game_test, shuffle=False, batch_size=batch_size, )

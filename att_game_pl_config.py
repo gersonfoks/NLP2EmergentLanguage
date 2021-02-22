@@ -1,9 +1,6 @@
 import torch
 import pytorch_lightning as pl
 
-import argparse
-import yaml
-
 from attribute_game.pl_model import AttributeBaseLineModel
 from attribute_game.utils import get_sender, get_receiver
 from callbacks.msg_callback import MsgCallback, MsgFrequencyCallback, EntropyMeasure, MeasureCallbacks, \
@@ -18,29 +15,10 @@ from datasets.AttributeDataset import get_attribute_game
 def run(n_attributes, attributes_size, n_receiver, n_symbols, msg_len, 
         samples_per_epoch_train, samples_per_epoch_test, 
         max_epochs, fixed_size, pretrain_n_epochs, learning_rate):
-    
-    # n_attributes = 2
-    # attributes_size = 2
 
-    # n_receiver = 3
-
-    # n_symbols = 25
-    # msg_len = 10
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # samples_per_epoch_train = int(10e3)
-    # samples_per_epoch_test = int(10e3)
-    # max_epochs = 20
 
-
-
-    # msg_len = 1
-    # n_symbols = 25
-
-    # fixed_size = False
-    #pretrain_n_epochs = 3
-
-    #hparams = {'learning_rate': 0.0001}
     hparams = {'learning_rate': learning_rate}
 
     sender = get_sender(n_attributes, attributes_size, n_symbols, msg_len, device, fixed_size=fixed_size,

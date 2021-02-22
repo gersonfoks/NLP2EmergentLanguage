@@ -2,9 +2,9 @@ import torch
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.utils.data import DataLoader
 
-from attribute_game.models import SenderFixed, SenderRnn, FeatureEncoder, ReceiverFixed, PredictionRNN, \
-    ReceiverPredictor
-from attribute_game.rnn_receiver import ReceiverLSTM
+from attribute_game.models import FeatureEncoder, PredictionRNN
+from attribute_game.receiver import ReceiverLSTM, ReceiverFixed, ReceiverPredictor
+from attribute_game.sender import SenderFixed, SenderRnn
 from datasets.AttributeDataset import AttributeDataset
 
 import numpy as np
