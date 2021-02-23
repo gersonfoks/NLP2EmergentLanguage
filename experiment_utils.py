@@ -146,5 +146,8 @@ def get_summary_results(name):
 
 
 def create_name(config):
-    return "experiment_{}_{}_{}_{}_{}.yml".format(config["n_receiver"], config["n_attributes"], config["attributes_size"],
+    if "name" in config.keys():
+        return config["name"] + ".yml"
+    else:
+        return "experiment_{}_{}_{}_{}_{}.yml".format(config["n_receiver"], config["n_attributes"], config["attributes_size"],
                                                config["with_predictor"], config["n_remove_classes"])
