@@ -38,13 +38,12 @@ for config_name in configs:
    
     print("")
 
+
 bars1=np.arange(len(results_summary.keys()))
 bars2=[i+0.4 for i in bars1]
 plt.style.use('ggplot')
 plt.bar(bars1,means[:5],0.4,yerr=stds[:5],capsize=4,label="predictability pressure ON")
 plt.bar(bars2,means[5:],0.4,yerr=stds[5:],capsize=4,label="predictability pressure OFF")
 plt.xticks(bars1+0.2,groupnames)
-# plt.bar(results_summary.keys(),[meanstd[0] for meanstd in results_summary.values()],yerr=[meanstd[1] for meanstd in results_summary.values()],w=0.4)
-# plt.bar(results_summary.keys(),[meanstd[0] for meanstd in results_summary.values()],yerr=[meanstd[1] for meanstd in results_summary.values()],w=0.4)
 plt.legend()
 plt.show()
