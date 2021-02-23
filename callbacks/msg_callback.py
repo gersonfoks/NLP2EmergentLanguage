@@ -119,6 +119,10 @@ class MeasureCallbacks(pl.Callback):
         self.dataloader = dataloader
         self.measures = measures
 
+        self.latest = {
+            measure.name: 0 for measure in measures
+        }
+
     @torch.no_grad()
     def on_epoch_end(self, trainer, pl_module):
         """
@@ -141,12 +145,11 @@ class MeasureCallbacks(pl.Callback):
                 msg = torch.argmax(msg, dim=-1).permute(1,0)
                 msgs.append(msg)
 
-
-
             msgs = torch.cat(msgs)
             logger = trainer.logger.experiment
             for measure in self.measures:
                 m = measure.make_measure(msgs)
+                self.latest[measure.name] = m
                 logger.add_scalar(measure.name, m, trainer.current_epoch)
 
 
@@ -182,7 +185,7 @@ class EntropyMeasure(Measure):
 
         percentages = [c / total for c in count]
 
-        return -sum([p * np.log2(p) for p in percentages])
+        return float(-sum([p * np.log2(p) for p in percentages]))
 
     def create_n_grams(self, msgs):
         if self.n_gram == 1:
@@ -196,12 +199,36 @@ class EntropyMeasure(Measure):
             l = len(msgs_list[0])
             for msg in msgs_list:
                 for i in range(l - self.n_gram):
-                    result.append(tuple(msg[i:i + self.n_gram]))
+                    if self.stop_symbol != msg[i]:
+                        result.append(tuple(msg[i:i + self.n_gram]))
 
         return result
 
 
+def clean(msg, stop_symbol):
+    mask = ~msg.ge(stop_symbol)
+
+    msgs = torch.masked_select(msg, mask)
+    return msgs
+
+
 class MsgLength(Measure):
+
+    def __init__(self, name, stop_symbol=None):
+        super().__init__(name)
+        self.stop_symbol = stop_symbol
+
+    def make_measure(self, msg):
+
+        msgs = clean(msg, self.stop_symbol)
+
+        total_len = len(msgs)
+        n_msgs = msg.shape[0]
+
+        return 1.0 + total_len / n_msgs
+
+
+class DistinctSymbolMeasure(Measure):
 
     def __init__(self, name, stop_symbol=None):
         '''
@@ -214,29 +241,7 @@ class MsgLength(Measure):
         self.stop_symbol = stop_symbol
 
     def make_measure(self, msgs):
-        mask = ~msgs.ge(self.stop_symbol)
-
-        msgs = torch.masked_select(msgs, mask)
-
-        total_len = len(msgs)
-        n_msgs = mask.shape[0]
-
-        return 1 + total_len / n_msgs
-
-
-class DistinctSymbolMeasure(Measure):
-
-    def __init__(self, name):
-        '''
-
-        :param name: name of the measure
-        :param fixed_length_message: The stop sign that is used
-        :param n_gram: how big the ngrams should be.
-        '''
-        super().__init__(name)
-
-    def make_measure(self, msgs):
-        return len(torch.unique(msgs))
+        return float(len(torch.unique(msgs)))
 
 
 class ResetDatasetCallback(pl.Callback):

@@ -1,6 +1,6 @@
 #Dataset
 samples_per_epoch_train: 10000
-samples_per_epoch_test: 10000
+samples_per_epoch_test: 1000
 max_epochs: 15
 n_receiver: 3
 n_attributes: 3
@@ -15,15 +15,20 @@ pretrain_n_epochs: 10
 
 #Grid search settings
 
-n_runs: 1
+n_runs: 3
 grid_search_vars: ["learning_rates", "batch_sizes", "predictor_loss_weights"]
 
-metric: 'val_accuracy_epoch'
+metrics:
+  - "distinct symbols"
+  - "val_accuracy_epoch"
+  - "symbol entropy"
+  - "bigram entropy"
+  - "msg_len"
 
 
 #Training settings
-learning_rates: [ 0.001]
-batch_sizes: [128]
+learning_rate: 0.0001
+batch_size: 128
 
 with_predictor: False
 
@@ -32,7 +37,7 @@ fixed_size: False
 
 
 # Predictor settings
-predictor_loss_weights: [0.0001]
+predictor_loss_weight: 0.0001
 hidden_size_predictor: 128
 
 
