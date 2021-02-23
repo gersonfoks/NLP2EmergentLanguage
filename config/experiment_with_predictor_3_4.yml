@@ -15,7 +15,7 @@ pretrain_n_epochs: 10
 
 #Grid search settings
 
-n_runs: 3
+n_runs: 5
 grid_search_vars: ["learning_rates", "batch_sizes", "predictor_loss_weights"]
 
 metrics:
@@ -32,7 +32,7 @@ learning_rate: 0.001
 batch_size: 128
 
 with_predictor: True
-
+n_remove_classes: 0
 # Sender params:
 fixed_size: False
 

@@ -59,7 +59,7 @@ def run_game_with_config(config):
     train_dataloader, test_dataloader = get_attribute_game(n_attributes, attributes_size,
                                                            samples_per_epoch_train=samples_per_epoch_train,
                                                            samples_per_epoch_test=samples_per_epoch_test,
-                                                           n_receiver=config["n_receiver"])
+                                                           n_receiver=config["n_receiver"], n_remove_classes=config["n_remove_classes"])
 
     signalling_game_model = get_game(config)
 
@@ -81,7 +81,9 @@ def run_game_with_config(config):
 
 
     msg_len_measure = MsgLength("msg_len", stop_symbol=stop_symbol)
-    measure_callbacks = MeasureCallbacks(test_dataloader, measures=[symbol_entropy, bi_gram_entropy, distinct_measure, msg_len_measure, tri_gram_entropy])
+    measure_callbacks = MeasureCallbacks(test_dataloader,
+                                         measures=[symbol_entropy, bi_gram_entropy, distinct_measure, msg_len_measure,
+                                                   tri_gram_entropy])
 
     reset_trainer = ResetDatasetCallback(train_dataloader.dataset)
 
@@ -144,4 +146,5 @@ def get_summary_results(name):
 
 
 def create_name(config):
-    return "experiment_{}_{}_{}_{}.yml".format(config["n_receiver"], config["n_attributes"], config["attributes_size"], config["with_predictor"])
+    return "experiment_{}_{}_{}_{}_{}.yml".format(config["n_receiver"], config["n_attributes"], config["attributes_size"],
+                                               config["with_predictor"], config["n_remove_classes"])

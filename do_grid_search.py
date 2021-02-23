@@ -29,9 +29,6 @@ args = parser.parse_args()
 with open(args.config) as f:
     config = yaml.load(f)
 
-### Set to a number for faster prototyping
-from datasets.AttributeDataset import get_attribute_game
-
 
 
 configs = construct_configs(config)

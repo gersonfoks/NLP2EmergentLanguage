@@ -258,3 +258,4 @@ class ResetDatasetCallback(pl.Callback):
         """
         if (trainer.current_epoch + 1) % self.every_n_epochs == 0:
             self.dataset.reset()
+

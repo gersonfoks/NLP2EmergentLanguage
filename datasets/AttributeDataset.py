@@ -80,7 +80,7 @@ class AttributeGameDataset(Dataset):
 
         remove_classes_train = set([tuple([i for j in range(n_attributes)]) for i in range(size_attributes)][:n_remove_classes])
         self.keep_classes = []
-        if train:
+        if train or n_remove_classes==0:
             for i in range(len(self.permutations)):
                 if self.permutations[i] not in remove_classes_train:
                     self.keep_classes.append(i)          
@@ -128,14 +128,15 @@ class AttributeGameDataset(Dataset):
 
 
 def get_attribute_game(n_attributes, size_attributes, samples_per_epoch_train=int(10e4),
-                       samples_per_epoch_test=int(10e3), batch_size=32, n_receiver=3):
+                       samples_per_epoch_test=int(10e3), batch_size=32, n_receiver=3, n_remove_classes=0):
     '''
     Get a dataloader for the signalling Game
     '''
 
     signalling_game_train = AttributeGameDataset(n_attributes, size_attributes, n_receiver=n_receiver,
-                                                 samples_per_epoch=samples_per_epoch_train, )
-    signalling_game_test = AttributeGameDataset(n_attributes, size_attributes, n_receiver=n_receiver, samples_per_epoch=samples_per_epoch_test)
+                                                 samples_per_epoch=samples_per_epoch_train, n_remove_classes=n_remove_classes, train=True )
+    signalling_game_test = AttributeGameDataset(n_attributes, size_attributes, n_receiver=n_receiver, samples_per_epoch=samples_per_epoch_test, n_remove_classes=n_remove_classes, train=False)
+
 
     train_dataloader = DataLoader(signalling_game_train, shuffle=True, batch_size=batch_size, )
     test_dataloader = DataLoader(signalling_game_test, shuffle=False, batch_size=batch_size, )
