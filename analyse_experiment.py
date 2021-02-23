@@ -6,7 +6,7 @@ from experiment_utils import create_name, get_summary_results
 
 parser = argparse.ArgumentParser(description='Run a grid defined in a given ')
 
-parser.add_argument('--config', default="config/example_experiment.yaml", required=False)
+parser.add_argument('--config', default="config/experiment_with_predictor_3_4.yml", required=False)
 
 args = parser.parse_args()
 
