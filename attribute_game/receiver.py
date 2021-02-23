@@ -107,7 +107,8 @@ class ReceiverLSTM(nn.Module):
         self.embedding_layer = nn.Sequential( nn.Linear(self.n_symbols, self.hidden_state_size))
 
         self.rnn = nn.LSTM(self.n_symbols, self.hidden_state_size )
-
+        print(self.n_xs)
+        print(self.hidden_state_size * (self.n_xs + 1))
         self.to_prediction = nn.Sequential(
 
             nn.Linear(self.hidden_state_size * (self.n_xs + 1), self.hidden_state_size),

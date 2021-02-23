@@ -47,7 +47,7 @@ def get_game(config):
     loss_module = torch.nn.CrossEntropyLoss()
     pack_massage = not fixed_size
     sender = get_sender(n_attributes, attributes_size, n_symbols, msg_len, device, fixed_size=fixed_size,
-                        pretrain_n_epochs=pretrain_n_epochs)
+                        pretrain_n_epochs=pretrain_n_epochs,)
     receiver = get_receiver(n_attributes, attributes_size, n_receiver, n_symbols, msg_len, device,
                             fixed_size=fixed_size,
                             pretrain_n_epochs=pretrain_n_epochs)
@@ -68,9 +68,7 @@ def get_game(config):
 def run_game_with_config(config):
     n_attributes = config["n_attributes"]
     attributes_size = config["attributes_size"]
-    n_symbols = config["n_symbols"]
-    msg_len = config["msg_len"]
-    fixed_size = config["fixed_size"]
+
 
     samples_per_epoch_train = config["samples_per_epoch_train"]
     samples_per_epoch_test = config["samples_per_epoch_test"]
@@ -81,7 +79,7 @@ def run_game_with_config(config):
 
     train_dataloader, test_dataloader = get_attribute_game(n_attributes, attributes_size,
                                                            samples_per_epoch_train=samples_per_epoch_train,
-                                                           samples_per_epoch_test=samples_per_epoch_test)
+                                                           samples_per_epoch_test=samples_per_epoch_test, n_receiver=config["n_receiver"])
 
     signalling_game_model = get_game(config)
 
