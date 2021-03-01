@@ -144,6 +144,22 @@ def get_summary_results(name):
 
     return {k: (np.mean(v), np.std(v)) for k, v in results.items()}
 
+def get_summary_results_filtered(name):
+    with open(name) as f:
+        results = yaml.load(f)
+    useidc = []
+    for k, v in results.items():
+        if k == "val_accuracy_epoch":
+            for i in range(len(v)):
+                if v[i] > 0.0:
+                    useidc.append(i)
+    resultreturn = dict()
+    for k, v in results.items():
+        vgood = [v[i] for i in useidc]
+        resultreturn[k] = (np.mean(vgood), np.std(vgood))
+
+    return resultreturn
+
 
 def create_name(config):
     if "name" in config.keys():

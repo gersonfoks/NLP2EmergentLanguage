@@ -1,0 +1,48 @@
+#Dataset
+samples_per_epoch_train: 10000
+samples_per_epoch_test: 1000
+max_epochs: 30
+n_receiver: 3
+n_attributes: 7
+attributes_size: 7
+#Language
+msg_len: 10
+n_symbols: 25
+
+
+pretrain_n_epochs: 10
+
+
+#Grid search settings
+
+n_runs: 5
+grid_search_vars: ["learning_rates", "batch_sizes", "predictor_loss_weights"]
+
+metrics:
+  - "distinct symbols"
+  - "val_accuracy_epoch"
+  - "symbol entropy"
+  - "bigram entropy"
+  - "msg_len"
+
+
+#Training settings
+learning_rate: 0.0001
+batch_size: 128
+
+with_predictor: False
+n_remove_classes: 0
+# Sender params:
+fixed_size: False
+
+
+# Predictor settings
+predictor_loss_weight: 0.0001
+hidden_size_predictor: 128
+
+
+
+
+
+
+

@@ -1,10 +1,10 @@
 #Dataset
 samples_per_epoch_train: 10000
 samples_per_epoch_test: 1000
-max_epochs: 30
+max_epochs: 15
 n_receiver: 3
-n_attributes: 5
-attributes_size: 5
+n_attributes: 7
+attributes_size: 7
 #Language
 msg_len: 10
 n_symbols: 25
@@ -32,13 +32,14 @@ learning_rate: 0.001
 batch_size: 128
 
 with_predictor: True
-n_remove_classes: 0
+n_remove_classes: 4
+
 # Sender params:
 fixed_size: False
 
 
 # Predictor settings
-predictor_loss_weight: 0.0001
+predictor_loss_weight: 0.01
 hidden_size_predictor: 128
 
 

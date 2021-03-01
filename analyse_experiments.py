@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import yaml
 import numpy as np
 
-from experiment_utils import create_name, get_summary_results
+from experiment_utils import create_name, get_summary_results_filtered
 
 parser = argparse.ArgumentParser(description='Run a grid defined in a given ')
 
@@ -42,8 +42,9 @@ for config_name in configs:
     print(config_name)
 
     name = create_name(config)
+    #keep_out = set(["val accuracy predictor_epoch","msg_len","distinct symbols","bigram entropy","symbol entropy"])
     keep_out = set(["val accuracy predictor_epoch","msg_len","distinct symbols","bigram entropy","symbol entropy"])
-    results_summary = get_summary_results(name)
+    results_summary = get_summary_results_filtered(name)
     for key, value in results_summary.items():
         print(key + ":   " + str(value))
         print("HOI")
